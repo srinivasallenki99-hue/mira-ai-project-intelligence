@@ -1,317 +1,269 @@
-# Mira – Solution Architecture
+# Mira – Solution Architecture (n8n Single-Platform Baseline)
 
-**Version:** 2.0 – Production Target (proposed)  
-**Status:** Production target design – implementation and approvals pending  
-**Based on:** Mira PRD v1.1, proposed production PRD v2.0, and TDD v2.0  
-**Stack:** Authenticated Portal · Langflow · OpenAI · LangWatch · GitHub · Managed Data/Queue/Monitoring Services
+**Version:** 2.1 – Production Target / n8n-only recommendation  
+**Date:** October 25, 2026  
+**Status:** Proposed implementation baseline; **not yet implemented or production certified**  
+**Rebased from:** Original `Architecture.md` v2.0 and `Technical_Design_Document.md` v2.0  
+**Requirements:** PRD v1.1 capstone functions; separately proposed PRD v2.0 / CR-PROD-001 production extensions  
+**Technical design:** [Technical_Design_Document.md](Technical_Design_Document.md) v2.1  
+**Platform ADR:** ADR-014 – n8n-only selection (Langflow and hybrid retained as evaluated alternatives)  
+**Primary implementation:** n8n workflows + approved OpenAI model + governed project data source + GitHub  
 
-> **Production change:** Diagrams P1–P2 show the intended production implementation. The five original logical/capstone diagrams are retained for historical traceability. Additional production requirements must be approved in PRD v2.0 before go-live.
+> **Reading guide:** Diagrams **P1–P2** are the **target-state production design** and include components not yet built. Diagrams **1–5** show the capstone logical workflow, data/approval handoffs, proactive extension, and T1–T12 evidence path. The v2.0 seven-diagram coverage is preserved while replacing Langflow/Make orchestration with n8n. This change does not approve production FR-019–FR-026 or claim a working system.
 
-> **Experience design:** The production portal supports authorized project selection, approved uploads, optional authorized read-only Jira/Trello imports, report preview and durable reviewer approval. These are application capabilities to build and validate—not automatically provided by Langflow Playground.
+## Architecture decision summary — Why n8n instead of Langflow or hybrid?
 
+| Candidate | Advantage | Mira-specific trade-off | Result |
+|---|---|---|---|
+| Langflow-only | AI-first graph development and agent tooling | Additional design effort for business integrations, scheduled workflows, approvals and state management | Not selected |
+| Hybrid n8n + Langflow | Dedicated AI specialist platform plus business automation | Two runtimes; n8n-to-Langflow authentication, retries, failure paths, cross-platform logs and hosting; no automatic LLM token advantage | Contingency only |
+| **n8n-only** | Single orchestration runtime for data, AI agents, integrations, schedules and notification gates | Must prove exact no-code processing, agent results and commercial/hosting controls | **Selected for capstone proof and production-target design** |
 
-## Diagram P1 — Production deployment and data/control planes
+**Expected benefit, not a measured claim:** simpler dependency graph and API surface; fewer operating platforms; deterministic source processing before AI; capacity to avoid redundant router calls. **Token cost depends on prompt size, calls, model, output and retries—not on platform branding.** Measured cost/accuracy/latency and platform edition features must be validated under G1–G7. Approval of ADR-014 remains pending.
 
-```mermaid
-flowchart TB
-  U["PM / TPM / Approver"] --> UI["Authenticated Project Portal
-Project Selector + Upload + Review"]
-  IDP["Enterprise IdP / OIDC / MFA"] --> UI
-  UI --> WAF["WAF + API Gateway + Rate Limits"]
-  WAF --> AUTH["Project RBAC / Authorization Service"]
-  AUTH --> REG[("Project Registry / Memberships")]
-  AUTH --> ING["Secure Ingestion + Virus Scan + Schema Validation"]
-  ING --> OBJ[("Encrypted Object Store / Versioned Files")]
-  ING --> DB[("Managed Project Data + Reports + Approvals")]
-  AUTH --> Q["Durable Job Queue / Worker Dispatch"]
-  Q --> LF["Private Langflow Orchestrator"]
-  LF --> P["Planner"]
-  LF --> R["Risk Assessor"]
-  LF --> S["Status Reporter"]
-  LF --> M["Milestone Tracker"]
-  P --> V["Fact / Schema Validation"]
-  R --> V
-  S --> V
-  M --> V
-  DB --> LF
-  LF --> LLM["OpenAI Approved Model"]
-  V --> DB
-  DB --> APPROVE["Audited Approval State Machine"]
-  APPROVE -->|"Approved only"| PUB["Export / Approved Distribution"]
-  SC["Managed Scheduler / Verified Source Webhooks"] --> CON["Jira / Trello Read-only Sync"]
-  CON --> ING
-  SC --> RULE["Deterministic Monitoring Rules"]
-  DB --> RULE
-  RULE --> ALERT[("Alert Registry + Notification Outbox")]
-  ALERT --> NOTIFY["Email / Slack / Teams Notification Worker"]
-  NOTIFY --> U
-  LF -.-> TRACE["LangWatch AI Traces"]
-  AUTH -.-> AUDIT[("Security + Activity Audit Log")]
-  APPROVE -.-> AUDIT
-  RULE -.-> OPS["Operations Metrics / On-call Alerts"]
-  GIT["GitHub / CI-CD + Approved Releases"] -.-> LF
-```
-
-**Implementation status:** Target-state blueprint; not a claim that enterprise SSO, queue, persistence, automated approval, or CI/CD are currently deployed. The Langflow workers run behind private authenticated ingress. Each data service verifies tenant/project scope independently.
-
-## Diagram P2 — Production data intake, report approval and automated milestone lifecycle
-
-```mermaid
-flowchart TD
- A["Authenticated PM / TPM"] --> B["Select Authorized Project"]
- B --> C{"Provide Data"}
- C -->|"Upload"| D["Scan + Parse Files"]
- C -->|"Jira/Trello"| E["OAuth Read-only Import"]
- D --> F["Validate + Version Source Snapshot"]
- E --> F
- F -->|"Invalid / stale"| X["Quarantine or Data Quality Alert"]
- F -->|"Valid"| G["Project-Scoped Snapshot"]
- G --> H["Request Plan / Risk / Status / Milestones"]
- H --> I["Langflow Specialist + Deterministic Rules"]
- I --> J["Validate Schema + Provenance"]
- J -->|"Fail"| K["Fix Data / Regenerate Draft"]
- K --> I
- J -->|"Pass"| L["Persist Immutable Draft"]
- L --> N{"Human Reviewer Decision"}
- N -->|"Reject"| K
- N -->|"Approve"| O["Lock Approval + Report Hash"]
- O --> P["Authorized Publish / Export"]
- G --> SCH["Scheduled or Event Monitoring"]
- SCH --> R["Deduplicate + Persist Risk Alert"]
- R --> S["Notify Owner Automatically"]
- S --> T["Acknowledge + Mitigation"]
- T --> V{"Resolved?"}
- V -->|"No / SLA breach"| W["Escalate + Recheck"]
- W --> SCH
- V -->|"Yes"| Z["Close with Evidence + Audit"]
-```
-
-**Approval separation:** Internal risk alerts are automatically dispatched; stakeholder-facing reports cannot be published until approval is persisted and server-side authorization is enforced. Rejected/modified drafts require new approval. Scheduled monitoring requires fresh authorized snapshots.
-
----
-
-## Diagram 1 — Target logical solution architecture
+## Diagram P1 — Production deployment and trust boundaries (target state)
 
 ```mermaid
 flowchart TB
-  U["PM / TPM / Delivery Manager"] --> UI["Mira User Interface<br/>Choose project · Upload/import · Request output · Review"]
-
-  subgraph IN["UI-initiated source ingestion"]
-    direction LR
-    FILE["File upload<br/>TXT / CSV / supported PDF<br/>MVP"]
-    EXT["Jira / Trello connector<br/>Read-only · Optional / Future"]
-  end
-  UI --> FILE
-  UI -. "Authorize and import" .-> EXT
-  FILE --> ING["Ingestion and validation<br/>Parse · Schema check · Normalize"]
-  EXT -.-> ING
-  ING --> CTX["Approved project context<br/>project_id · source/version · imported_at"]
-
-  UI --> REQ["Request validation<br/>Intent · project · sprint · as-of date"]
-  REQ --> ROUTER["Mira Orchestrator<br/>Langflow Agent + Run Flow tools"]
-
-  subgraph AGENTS["Langflow specialist flows"]
-    direction LR
-    P["Planner"]
-    R["Risk Assessor"]
-    S["Status Reporter<br/>+ Stakeholder Drafts"]
-    M["Milestone Tracker"]
-  end
-  ROUTER --> P
-  ROUTER --> R
-  ROUTER --> S
-  ROUTER --> M
-
-  CTX --> DATA["Shared data services<br/>Project-scoped retrieval · Source references"]
-  DATA --> CALC["Deterministic processing<br/>Task counts · Sprint filters · Date comparisons"]
-  DATA --> P
-  DATA --> R
-  CALC --> S
-  CALC --> M
-
-  P --> VALID["Output assurance<br/>Schema + source checks · Missing-data handling"]
+  U["PM / TPM / Reviewer"] --> PORTAL["Authenticated Mira Portal<br/>Project selection | Upload | Review"]
+  IDP["Enterprise IdP<br/>OIDC / SSO / MFA"] --> PORTAL
+  PORTAL --> EDGE["API Gateway / WAF<br/>TLS | Rate limits | File size"]
+  EDGE --> AUTH["Trusted application authorization<br/>Project membership and RBAC"]
+  AUTH <--> REG[("Project registry and memberships")]
+  AUTH --> INTAKE["Governed file / connector intake<br/>Scan | Schema check | Project scope"]
+  FILE["User file upload"] --> INTAKE
+  CONNECT["Jira / Trello<br/>Approved read-only integration"] --> INTAKE
+  INTAKE --> OBJ[("Versioned encrypted source files")]
+  INTAKE --> DB[("Validated project data<br/>Reports | Approvals | Alerts")]
+  AUTH --> EXEC["Secured n8n workflows<br/>Business and AI orchestration"]
+  EXEC <--> DB
+  EXEC --> DISPATCH["n8n Router<br/>Switch / IF / Execute Sub-workflow"]
+  DISPATCH --> P["Planner"]
+  DISPATCH --> R["Risk Assessor"]
+  DISPATCH --> S["Status Reporter"]
+  DISPATCH --> M["Milestone Tracker"]
+  P --> VALID["Source and schema assurance"]
   R --> VALID
   S --> VALID
   M --> VALID
-  VALID --> DRAFT["Generated DRAFT<br/>Markdown / JSON · Evidence references"]
-  DRAFT --> HITL{"Human review / approval<br/>PM or TPM"}
-  HITL -- "Approve" --> OUT["Approved report<br/>Download / share manually"]
-  HITL -- "Reject or request edits" --> REVISE["Revise draft / regenerate with feedback"]
-  REVISE --> VALID
-  HITL -- "Hold" --> HOLD["Draft remains unpublished"]
-
-  LLM["OpenAI GPT-4o-mini<br/>Model inference"] -.-> ROUTER
-  LLM -.-> AGENTS
-  OBS["LangWatch<br/>Traces · Evaluation · Usage"] -.-> ROUTER
-  OBS -.-> AGENTS
-  GH["GitHub<br/>PRD · TDD · Mermaid · Flow JSON · Test evidence"] -. "Versioned exports (manual MVP)" .-> AGENTS
-
-  classDef ui fill:#dbeafe,stroke:#2563eb,color:#1e3a8a;
-  classDef data fill:#dcfce7,stroke:#15803d,color:#14532d;
-  classDef agent fill:#ede9fe,stroke:#7c3aed,color:#4c1d95;
-  classDef gate fill:#ffedd5,stroke:#c2410c,color:#7c2d12;
-  classDef out fill:#fce7f3,stroke:#be185d,color:#831843;
-  class U,UI,REQ ui;
-  class FILE,EXT,ING,CTX,DATA,CALC data;
-  class ROUTER,P,R,S,M,LLM agent;
-  class HITL,HOLD,REVISE gate;
-  class VALID,DRAFT,OUT out;
+  VALID --> DB
+  DB --> GATE["Persisted authorization-aware<br/>approval and publication gate"]
+  GATE --> PUB["Approved distribution / export"]
+  TIMER["n8n Schedule Trigger<br/>or verified source event"] --> MON["n8n Monitoring workflow<br/>Freshness | Rules | Dedup"]
+  MON <--> DB
+  MON --> NOTICE["Notification provider / outbox<br/>Internal PM/TPM alert"]
+  NOTICE --> U
+  EXEC -. "Approved model requests" .-> LLM["OpenAI approved pinned model"]
+  EXEC -. "Execution / evaluation" .-> OBS["n8n execution logs + evals<br/>External ops telemetry if configured"]
+  MON -.-> OBS
+  GATE -.-> AUD[("Independent security and decision audit")]
+  AUTH -.-> AUD
+  GH["GitHub reviewed n8n JSON<br/>Prompts | Tests | Release manifests"] -. "Controlled promotion" .-> EXEC
 ```
 
-**Architectural boundaries:** The project files and connectors are alternative inputs to the same ingestion/normalization process; they are not independent agent interfaces. The approved project context is a logical data service, not necessarily a new database. LangWatch and GitHub are supporting systems, not part of the report approval decision. Only validated, reviewed outputs may be distributed externally.
+**Boundary note:** n8n workspace/project permissions govern **workflow editors**, not end-user tenant data. The production portal/data service must authorize each business project lookup. Queue/worker mode, high availability, enterprise Git source control and OIDC/SSO depend on the licensed n8n edition and deployment. Native workflow execution history is not an immutable audit register. P1 is **not a claim of deployed controls**.
 
-## Diagram 2 — Data input, report generation and human-in-the-loop approval
+## Diagram P2 — Production intake, report approval and milestone alert lifecycle
 
 ```mermaid
 flowchart TD
-  START(["PM / TPM opens Mira UI"]) --> PROJECT["Select project (MVP: ABCDE)"]
-  PROJECT --> INPUT{"Choose data source"}
-  INPUT -- "Upload" --> UP["Upload project files<br/>Description / timeline / risks / task board"]
-  INPUT -. "Optional connector" .-> CON["Authorize read-only Jira / Trello import"]
-  UP --> CHECK["Validate file type, fields, statuses and dates"]
-  CON -.-> CHECK
-  CHECK --> GOOD{"Data valid and sufficient?"}
-  GOOD -- "No" --> ERR["Display errors / missing fields<br/>Request corrected data"]
-  ERR --> INPUT
-  GOOD -- "Yes" --> SNAP["Create project data snapshot<br/>Project ID + source version + timestamp"]
-  SNAP --> ASK["User requests plan / risk / status / milestone report"]
-  ASK --> ROUTE["Mira Router chooses specialist flow"]
-  ROUTE --> EVIDENCE["Retrieve scoped source records<br/>Calculate exact counts and dates as needed"]
-  EVIDENCE --> GEN["Specialist agent generates report draft"]
-  GEN --> VERIFY{"Output schema and source checks pass?"}
-  VERIFY -- "No" --> FIX["Return validation failure or request missing information"]
-  FIX --> ASK
-  VERIFY -- "Yes" --> PREVIEW["Show DRAFT to PM / TPM<br/>With source references and warnings"]
-  PREVIEW --> DECIDE{"Human approval decision"}
-  DECIDE -- "Approve" --> APPROVE["Mark report APPROVED<br/>Record reviewer + version + decision"]
-  APPROVE --> EXPORT["Export Markdown / JSON / approved document<br/>Manual email or Slack sharing"]
-  DECIDE -- "Request changes" --> FEEDBACK["Provide review comments"]
-  FEEDBACK --> GEN
-  DECIDE -- "Reject / hold" --> STOP(["Not distributed"])
-  EXPORT --> END(["Complete"])
-
-  classDef entry fill:#dbeafe,stroke:#2563eb,color:#1e3a8a;
-  classDef ingest fill:#dcfce7,stroke:#15803d,color:#14532d;
-  classDef decision fill:#ffedd5,stroke:#c2410c,color:#7c2d12;
-  classDef report fill:#ede9fe,stroke:#7c3aed,color:#4c1d95;
-  classDef final fill:#fce7f3,stroke:#be185d,color:#831843;
-  class START,PROJECT,ASK entry;
-  class UP,CON,CHECK,SNAP,EVIDENCE ingest;
-  class INPUT,GOOD,VERIFY,DECIDE decision;
-  class ROUTE,GEN,PREVIEW,FEEDBACK,FIX,ERR report;
-  class APPROVE,EXPORT,STOP,END final;
+  U["Authenticated PM / TPM"] --> PROJECT["Choose project and verify membership"]
+  PROJECT --> SRC{"Approved source?"}
+  SRC -->|Upload| UP["Scan + parse TXT / CSV / approved PDF"]
+  SRC -->|Connector| API["Jira / Trello read-only sync"]
+  UP --> CHECK["Validate and version snapshot"]
+  API --> CHECK
+  CHECK --> OK{"Complete, consistent and fresh?"}
+  OK -->|No| ERR["Reject / quarantine / report data quality issue"]
+  OK -->|Yes| SNAP[("Immutable project-scoped snapshot")]
+  SNAP --> REQUEST["User requests plan / risk / status / tracking"]
+  REQUEST --> ROUTER["n8n Router + Execute Sub-workflow"]
+  ROUTER --> FACT["Rules and specialist narrative<br/>Deterministic facts first"]
+  FACT --> VALID["Reconcile source refs and response schema"]
+  VALID --> PASS{"Passed?"}
+  PASS -->|No| FIX["Return validation issue or corrected new draft"]
+  PASS -->|Yes| DRAFT[("Persist report DRAFT with hash")]
+  DRAFT --> HUMAN{"Authorized PM/TPM decision"}
+  HUMAN -->|Reject / request changes| FIX
+  HUMAN -->|Approve| LOCK["Persist approval identity<br/>Snapshot and report hash"]
+  LOCK --> PUB["Recheck gate and publish"]
+  SNAP --> SCAN["Scheduled / event scan<br/>Rules only for every run"]
+  SCAN --> CHANGE{"New or changed valid alert?"}
+  CHANGE -->|No| RUNLOG["Log scan; no redundant AI call"]
+  CHANGE -->|Yes| REGISTER[("Idempotent alert record + outbox")]
+  REGISTER --> NOTIFY["Notify assigned PM without prior report approval"]
+  NOTIFY --> ACK{"Acknowledged within policy?"}
+  ACK -->|Yes| ACTION["Assign mitigation and recheck"]
+  ACK -->|No| ESC["Escalate by approved policy"]
+  ACTION --> SCAN
+  ESC --> SCAN
 ```
 
-### Human-in-the-loop implementation note
+**Publication vs. detection:** report sending and baseline-changing actions require verified authorization; evidence-backed internal notices do not wait for report approval. Unchanged or stale snapshots do not prove new project developments. Approval must be persisted and enforced at trusted application/data boundary—not only in a UI button or an unsecured n8n form.
 
-The **approval decision is a required business checkpoint in the target design**. For the no-code capstone MVP, a PM/TPM may review the generated draft and approve it **manually** before sharing. Do not represent the `APPROVED` status, reviewer audit log, or automatic return-to-generation loop as implemented until you configure and test those functions. If a Langflow human-input/pause mechanism is used, confirm it works in the parent flow; do not assume a specialist invoked through Run Flow can pause for approval.
+---
 
-### MVP vs. future capabilities
-
-| Capability | MVP design | Future enhancement |
-|---|---|---|
-| UI file ingestion | Required, subject to supported Langflow UI/upload flow | Full self-service upload portal |
-| Jira/Trello | Not required; static CSV export can substitute | Authorized read-only connector |
-| Data processing | Deterministic counts/date rules; feasibility gate required | Reusable managed data service |
-| Human approval | Manual PM/TPM review before distribution | In-app approval workflow and audit trail |
-| Distribution | User manually exports/shares approved output | Controlled integration with Docs, email or Slack |
-| Versioning | Manual Langflow JSON export to GitHub | Automated deployment and synchronization |
-
-### Acceptance evidence
-
-- Uploaded dataset is parsed and validated, with source version recorded.
-- Status reports reconcile to actual task-board counts; blocked task **T024** is identified.
-- Specialist outputs are grounded in the selected project only.
-- Reports remain drafts until PM/TPM approval.
-- Rejected reports are not shared.
-- All 12 capstone baseline tests and relevant execution traces are documented.
-
-
-## Diagram 3 — Proactive milestone monitoring, notification and escalation (proposed extension)
+## Diagram 1 — Capstone logical n8n architecture and four specialist agents
 
 ```mermaid
 flowchart TB
-  subgraph SRC["Approved project sources"]
-    J["Jira or Trello read-only data (optional)"]
-    F["Uploaded CSV snapshot (MVP)"]
-  end
-  S["Make.com or approved no-code scheduler
-Scheduled polling / supported event trigger"]
-  J --> S
-  F --> S
-  S --> FRESH{"Data current and valid?"}
-  FRESH -- "No" --> DQ["Create data-freshness warning
-Route to PM; no delivery prediction"]
-  FRESH -- "Yes" --> RULES["Deterministic rules
-Blocked / overdue / due soon / documented dependencies"]
-  RULES --> CHG{"New or materially changed alert?"}
-  CHG -- "No" --> LOG["Record check; avoid duplicate notification"]
-  CHG -- "Yes" --> AGENT["Langflow Milestone Tracker
-Evidence-based explanation + suggested action"]
-  AGENT --> REGISTER["Alert register
-Unique key + owner + severity + state + timestamps"]
-  REGISTER --> NOTICE["Notify assigned PM / TPM
-Email, Slack or Teams"]
-  NOTICE --> ACK{"Acknowledged within policy?"}
-  ACK -- "Yes" --> ACTION["PM reviews, assigns mitigation + due date"]
-  ACK -- "No" --> ESC["Escalate to configured manager
-After policy threshold"]
-  ACTION --> FOLLOW["Next monitoring run: reassess source"]
-  ESC --> FOLLOW
-  FOLLOW --> RULES
-  ACTION --> APPROVE{"Approval for external report
-or committed-date change?"}
-  APPROVE -- "Yes" --> PUBLISH["Approved publication / authorized change"]
-  APPROVE -- "No" --> HOLD["Keep proposed changes internal"]
-  OBS["LangWatch: LLM traces and evaluations"] -.-> AGENT
-  GOV["GitHub: rules, TDD, exported flows, test evidence"] -.-> S
+  U["PM / TPM / Tester"] --> FORM["Mira input<br/>n8n Form Trigger or test webhook"]
+  FORM --> SOURCE["Approved TXT / CSV upload<br/>Fixed ABCDE project in capstone"]
+  SOURCE --> EXTRACT["Extract From File + Edit Fields<br/>Parse and normalize"]
+  EXTRACT --> QUALITY{"Schema, project ID, task IDs,<br/>status and dates valid?"}
+  QUALITY -->|No| FAIL["VALIDATION_ERROR / request corrections"]
+  QUALITY -->|Yes| SNAP["Versioned project snapshot + provenance"]
+  FORM --> REQUEST["Request ID + user intent + scope"]
+  SNAP --> ROUTE["n8n Router / Dispatcher<br/>Switch / IF based on intent"]
+  REQUEST --> ROUTE
+  ROUTE --> SUFF{"Sufficient evidence?"}
+  SUFF -->|No| ASK["INSUFFICIENT_DATA<br/>Clarifying questions; no AI invention"]
+  SUFF -->|Yes| PICK{"Choose specialist sub-workflow"}
+  PICK --> P["Mira_01_Planner"]
+  PICK --> R["Mira_02_Risk_Assessor"]
+  PICK --> S["Mira_03_Status_Reporter"]
+  PICK --> M["Mira_04_Milestone_Tracker"]
+  SNAP --> CALC["Deterministic rules<br/>Filter | Summarize | Date and Time"]
+  CALC --> S
+  CALC --> M
+  SNAP --> P
+  SNAP --> R
+  P --> CHECK["Evidence and output assurance"]
+  R --> CHECK
+  S --> CHECK
+  M --> CHECK
+  CHECK --> DRAFT["Status/result<br/>Evidence | Warnings | Draft"]
+  DRAFT --> HITL{"PM/TPM review"}
+  HITL -->|Approved| REPORT["Approved export / authorized share"]
+  HITL -->|Needs revision| REV["New draft + revalidate"]
+  REV --> CHECK
+  HITL -->|Rejected| HOLD["Remain unpublished"]
+  LLM["Approved OpenAI model"] -.-> P
+  LLM -.-> R
+  LLM -.-> S
+  LLM -.-> M
+  OBS["n8n executions + test ledger<br/>Model usage where available"] -.-> ROUTE
+  OBS -.-> CHECK
+  GIT["GitHub<br/>Exports / ADR / TDD / T1–T12"] -.-> ROUTE
 ```
 
-**Important:** Make.com, the alert register, outbound notifications and escalation are **proposed additions**; they are not implemented capabilities. The cloud scheduler must reach an authenticated Langflow endpoint; a local-only Desktop URL is insufficient. Detect-and-notify does **not** require a human approval delay, but mitigation commitments and external reports **do** require approval. Rules and notification policies need business sign-off.
+**Routing strategy:** deterministic routing for known intents avoids an extra model token charge. An optional AI classifier handles genuinely ambiguous requests only; it must not retrieve ABCDE files automatically during negative tests T2/T4/T6/T9. Agent separation is by reusable workflow and contract, not necessarily multiple interacting autonomous LLMs.
 
-## Diagram 4 — Human-in-the-loop report review and disposition
+## Diagram 2 — MIRA-001 source ingestion, aggregation and human review
 
 ```mermaid
 flowchart TD
-  A["Generate report from approved project snapshot"] --> B["Validate source IDs, counts, dates and response schema"]
-  B --> C{"Validation passed?"}
-  C -- "No" --> E["Return errors / insufficient-data result"]
-  C -- "Yes" --> D["Draft report with evidence, version and warnings"]
-  D --> H["PM / TPM reviews draft"]
-  H --> I{"Decision"}
-  I -- "Approve" --> P["Record reviewer + timestamp + document version"]
-  P --> O["Release approved export; manual share in MVP"]
-  I -- "Request changes" --> R["Add comments and regenerate a NEW draft version"]
-  R --> B
-  I -- "Reject or hold" --> X["Keep unpublished"]
+  BEGIN["n8n Form Trigger<br/>project_id + task_board CSV + optional sprint"] --> BIN["Extract From File: CSV"]
+  BIN --> MAP["Normalize actual source headers<br/>Preserve ID, status, sprint and date"]
+  MAP --> CHECK{"Required columns and records valid?"}
+  CHECK -->|No| REJECT["Reject with field-specific errors"]
+  CHECK -->|Yes| UNIQUE["Validate unique task IDs and recognized statuses"]
+  UNIQUE --> OK{"All 25 source tasks?"}
+  OK -->|No| ERR["Mismatch / investigate; no LLM call"]
+  OK -->|Yes| RAW["Validated task items"]
+  RAW --> CT["Count all task IDs"]
+  RAW --> AGG["Summarize by status"]
+  RAW --> BLK["Filter blocked rows / find T024"]
+  RAW --> SPRINT["Optional Sprint 2 or Sprint 3 filter"]
+  SPRINT --> SPRINTCOUNT["Summarize selected sprint"]
+  CT --> RECON["Reconcile counts and source IDs"]
+  AGG --> RECON
+  BLK --> RECON
+  SPRINTCOUNT --> RECON
+  RECON --> FACTS["Grounded, validated status facts"]
+  FACTS --> REPORT["Status Reporter sub-workflow<br/>OpenAI only for narrative"]
+  REPORT --> VALID["Check no invented facts/cross-sprint data"]
+  VALID --> DRAFT["DRAFT status output"]
+  DRAFT --> HUMAN{"PM review"}
+  HUMAN -->|Approve| SHARE["Authorized share/export"]
+  HUMAN -->|Reject| HOLD["Hold / revise"]
 ```
 
-**MVP control:** Review and external sharing are manual. Reviewer-state storage, automatic approval buttons, and release blocking are target features that need a persistent UI/workflow integration before being claimed as automated.
+**MIRA-001 pass criterion:** From **actual uploaded source CSV**, independently verify `25 = 3 Done + 3 In Progress + 1 Blocked + 18 To Do` and T024 `Security review` BLOCKED. These are **assignment expectations, not tested outputs**. Sprint filtering precedes generation, and invalid/missing/duplicate records must not be silently dropped or coerced. The first milestone is deterministic data verification, before any AI narrative.
 
-## Diagram 5 — T1–T12 baseline test and evidence pathway
+### Capstone MVP vs. production boundary
+
+| Component | Capstone | Production target |
+|---|---|---|
+| Input surface | n8n Form Trigger; approved synthetic/sample data | Authenticated portal and governed API |
+| Business project selection | Fixed `ABCDE-AI-001` | Authorized multi-project registry + data-scoped RBAC |
+| Source data | Original task/timeline/risk files | Approved read-only Jira/Trello with scheduled refresh |
+| Rule execution | n8n visual nodes, G3 proof | Governed durable data/rule services if needed |
+| Approval | Documented PM/TPM manual review | Secure persistent workflow with authorization |
+| Monitoring | On-demand Tracker | Approved scheduled/event detection, registry, dedup and escalation |
+| Source control | Manual n8n JSON export, PR | Approved promotion CI/CD according to licensed edition |
+
+## Diagram 3 — Proactive milestone monitoring and alert lifecycle (proposed CR-001)
+
+```mermaid
+flowchart TB
+  SCHEDULE["n8n Schedule Trigger<br/>approved project-local policy"] --> IMPORT["Read-only Jira/Trello sync or fresh validated snapshot"]
+  EVENT["Verified source event"] --> IMPORT
+  IMPORT --> FRESH{"Source valid, complete and fresh?"}
+  FRESH -->|No| DQ["Data quality alert<br/>No unsupported green status"]
+  FRESH -->|Yes| RULE["Deterministic rule engine<br/>Blocked | Overdue | Due-soon | Dependencies"]
+  RULE --> CHANGE{"New / materially changed alert?"}
+  CHANGE -->|No| LOG["Log scan and suppress duplicates<br/>Skip AI call"]
+  CHANGE -->|Yes| WRITE["Persist alert fingerprint and owner"]
+  WRITE --> NARR["Optional Milestone Tracker<br/>Grounded AI explanation"]
+  NARR --> OUTBOX["Durable notification intent / outbox"]
+  OUTBOX --> SEND["Approved email / Teams / Slack node"]
+  SEND --> ACK{"PM/TPM acknowledgement?"}
+  ACK -->|Yes| ACTION["Mitigation owner / due date"]
+  ACK -->|No / SLA breach| ESC["Escalation to configured owner"]
+  ACTION --> NEXT["Recheck next fresh run"]
+  ESC --> NEXT
+  NEXT --> RULE
+  DQ --> OPS["Ops monitor source freshness"]
+  LOG --> OPS
+  GITHUB["Versioned rulebook / n8n JSON / evidence"] -.-> RULE
+```
+
+**State:** `DETECTED → NOTIFIED → ACKNOWLEDGED → ACTION_ASSIGNED → MONITORING → RESOLVED`, with `ESCALATED` when policy dictates. Dedup fingerprint keyed by tenant/project/source-item/rule and relevant status transition; source freshness/owner mapping must be approved. Rule checks need not incur tokens; use OpenAI only for new or changed alerts when a narrative adds value. **FR-019–FR-026 are not capstone P0 features until authorized.**
+
+## Diagram 4 — Human-in-the-loop draft review and publish gate
 
 ```mermaid
 flowchart TD
-  CASES["12 original capstone test inputs"] --> CLASS{"Select test class"}
-  CLASS -->|"Planning T1 T2 T9"| PL["Planner"]
-  CLASS -->|"Risks T3 T4 T7"| RK["Risk Assessor"]
-  CLASS -->|"Status T5 T6 T10 T12"| ST["Status Reporter + draft mode"]
-  CLASS -->|"Tracking T8 T11"| MT["Milestone Tracker"]
-  DATA["Versioned original files / controlled empty context"] --> PL
-  DATA --> RK
-  DATA --> ST
-  DATA --> MT
-  PL --> V["Validate grounding / missing-data / contract"]
-  RK --> V
-  ST --> V
-  MT --> V
-  V --> EXACT["Check source IDs, exact counts, date window, sprint isolation"]
-  EXACT --> RESULT{"Assertions met?"}
-  RESULT -->|"Yes"| PASS["PASS + trace + reviewer evidence"]
-  RESULT -->|"No"| FAIL["FAIL + defect / remediation"]
-  FAIL --> RETEST["Re-run same versioned fixture"]
-  RETEST --> V
-  PASS --> LEDGER["T1–T12 execution ledger in GitHub"]
+  A["Validated project-scoped facts"] --> B["Specialist generates report draft"]
+  B --> C["Verify schema / task IDs / counts / dates"]
+  C --> D{"Assurance passed?"}
+  D -->|No| FAIL["Validation error / no distribution"]
+  D -->|Yes| STORE["Persist immutable draft version, hash and snapshot"]
+  STORE --> REVIEW["PM/TPM authenticated review<br/>n8n Wait / approved interaction"]
+  REVIEW --> DEC{"Reviewer decision"}
+  DEC -->|Approve| AUTH["Verify role, draft hash, freshness and reviewer identity"]
+  AUTH --> GATE{"Publishing preconditions met?"}
+  GATE -->|No| HOLD["Hold + audit denial"]
+  GATE -->|Yes| PUB["Record approval + authorized distribution"]
+  DEC -->|Revise| FIX["Capture reviewer comments; create new draft"]
+  FIX --> C
+  DEC -->|Reject / hold| HOLD
+```
+
+**Capstone implementation caution:** manual documented review is acceptable; no automatic publish gate should be claimed until built. For production, n8n Wait does not independently authenticate business users, authorize project membership or create immutable approvals; a trusted portal/data service and store enforce those controls. Internal issue alerts remain outside the stakeholder-report approval gate.
+
+## Diagram 5 — T1–T12 regression and evaluation evidence
+
+```mermaid
+flowchart TD
+  CASES["12 original capstone test prompts"] --> ISOLATE["Pin dataset snapshot / control empty context"]
+  ISOLATE --> CLASS{"Route by expected intent"}
+  CLASS -->|T1, T2, T9| PLAN["n8n Planner sub-workflow"]
+  CLASS -->|T3, T4, T7| RISK["n8n Risk Assessor sub-workflow"]
+  CLASS -->|T5, T6, T10, T12| STATUS["n8n Status Reporter sub-workflow"]
+  CLASS -->|T8, T11| MILE["n8n Milestone Tracker sub-workflow"]
+  PLAN --> ASSERT["Facts, sufficiency and output schema assertions"]
+  RISK --> ASSERT
+  STATUS --> ASSERT
+  MILE --> ASSERT
+  ASSERT --> EXACT["Exact IDs, status counts, date windows,<br/>sprint isolation and no invented tasks"]
+  EXACT --> PASS{"All assertions satisfied?"}
+  PASS -->|Yes| YES["PASS with execution ID, source/model/workflow version"]
+  PASS -->|No| NO["FAIL / defect / remediation"]
+  NO --> RERUN["Replay pinned fixture"]
+  RERUN --> ASSERT
+  YES --> EVID["GitHub T1–T12 ledger<br/>n8n executions / approved evaluations"]
 ```
 
 ### Traceability for all twelve baseline cases
@@ -333,25 +285,32 @@ flowchart TD
 
 **Status:** All twelve cases are **addressed in the design**, but none should be claimed as executed or passed until original project files and recorded output evidence are available. Negative tests T2/T4/T6/T9 require isolated no-data context. T10 expects 25 tasks (3 Done, 3 In Progress, 1 Blocked, 18 To Do), to be verified from the original CSV. T11 uses a fixed explicit as-of date; T12 is a draft requiring approval before distribution. Proactive-monitoring CR-001 tests are **additional**, not replacements for these tests.
 
-## Architecture change log
 
-| Version | Change | Baseline impact |
+## Architecture change log and baseline retention
+
+| Version | Change | Preserved |
 |---|---|---|
-| 1.3 | Two diagrams: user-initiated ingestion and draft approval | PRD v1.1 MVP |
-| 1.4 | Retained diagrams 1–2; added proactive monitor and explicit HITL state flow | **Proposed scope extension** FR-019–FR-026; not automatically approved |
-| 1.5 | Preserved prior four diagrams; added baseline test/evidence pathway and detailed T1–T12 traceability | Strengthens PRD v1.1 acceptance coverage; no scope expansion |
+| 1.3–1.5 | Source input, four logical agent roles, human approval, monitoring and explicit T1–T12 path | Capstone baseline |
+| **2.0** | Added P1/P2 production data/control plane, persistent approvals/alerts, high availability/security gates | Seven diagram views + T1–T12 + P01–P15 |
+| **2.1 (2026-10-25)** | **Replaced Langflow/Make target with n8n-only orchestration and n8n specialists; added ADR-014 rationale, MIRA-001 exact-data implementation map, platform cost/integration risks and no-code feasibility gates** | **All seven diagram views, four agent responsibilities, FR-001–018, proposed FR-019–026, T1–T12, P01–P15** |
 
-## Implementation and operational decisions
+## Platform, cost and API integration assumptions
 
-- **Input interface:** MVP uses ABCDE fixed project and user-supplied files. A multi-project selector and Jira/Trello integration are optional pilot functionality, with project authorization required before use.
-- **Snapshot freshness:** Uploaded CSV files provide only snapshot-based monitoring. Scheduled checks against an unchanged snapshot cannot detect newly emerging blockers. For a genuinely proactive pilot, arrange scheduled fresh exports or an authorized read-only API connection.
-- **Monitoring schedule:** Proposed daily business-day checks, with event-driven runs if source integration supports them. No fixed monitoring interval is confirmed in PRD v1.1.
-- **Alert state:** `DETECTED → NOTIFIED → ACKNOWLEDGED → ACTION_ASSIGNED → MONITORING → RESOLVED/ESCALATED`. Assign owner and timestamps; deduplicate using `(project_id, source_item_id, alert_type)` and reopen when severity changes.
-- **Approval policy:** PM notification on a risk is immediate once validation passes. Only corrective commitments, customer-facing communications and final reports require approval.
-- **Observability:** LangWatch captures LLM activity; monitor scheduler run success, source freshness, delivery success and acknowledgement status separately, because LLM traces do not prove notifications were delivered.
-- **PRD change:** FR-019–FR-026 and acceptance criteria must be reviewed/approved for proactive alerts before claiming the expanded scope is part of the MVP.
+- **Single orchestrator:** n8n `Switch` + `Execute Sub-workflow` means no n8n→Langflow API hop and no Make.com scheduler; however OpenAI, Jira/Trello, storage and notification APIs still require authentication, retries and availability controls.
+- **Token economics:** deterministic counts and calendar filters consume no LLM tokens; route known intents without LLM classification; call only necessary specialist(s); avoid AI on unchanged monitoring scans. The same OpenAI model with the same input/output token counts has **the same LLM bill** whether invoked from Langflow, n8n or hybrid. Record real token usage, retries, n8n workflow-execution charges, infrastructure, storage and provider message fees separately.
+- **No-code feasibility:** n8n visual `Extract From File`, `Summarize`, `Filter`, `IF`, `Date & Time`, `Merge` and schema mappings are candidates, not automatic proof of uniqueness, date or type correctness. Do not conceal a Code node or spreadsheet calculation while claiming zero code. G3 must pass against the actual 25-row fixture.
+- **Edition caveat:** n8n internal source control/environments and certain enterprise security/storage capabilities require eligible editions/configurations. GitHub manual exports are the capstone approach; do not represent a file commit as a deployed workflow.
+- **Data governance:** n8n Form Trigger is a POC input surface, **not** a complete authenticated project portal. Use synthetic/approved data in development and verified per-project authorization for production.
+- **Observability:** n8n executions + evaluation ledgers are the selected baseline. Additional model tracers (including LangWatch) require a separate compatibility/privacy decision and are not deployed by this design.
+- **Release policy:** CR-001/proactive monitoring and P01–P15 production gates stay pending. System availability, isolation, approvals and notification delivery must be tested; none is inherited automatically from n8n.
 
+### Official implementation reference links
 
-## Production release interpretation
+- [n8n Summarize node](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.summarize/)
+- [n8n Schedule Trigger](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.scheduletrigger/)
+- [n8n AI evaluations](https://docs.n8n.io/advanced-ai/evaluations/overview/)
+- [n8n executions](https://docs.n8n.io/workflows/executions/all-executions/)
+- [n8n source-control plan and setup](https://docs.n8n.io/source-control-environments/create-environments/)
+- [n8n security audit](https://docs.n8n.io/hosting/securing/security-audit/)
 
-Diagrams 1–5 below the production views remain the original logical/capstone diagrams and T1–T12 pathway. Diagrams P1–P2 are **normative production target-state** and supersede simplified earlier deployment/approval depictions where inconsistent. No production readiness is implied without the TDD v2.0 P01–P15 gates.
+**Design disposition:** Selected proposed n8n-only implementation baseline; historical v2.0 Langflow/hybrid design remains archived. Actual workflow configuration, dataset inspection, 12 capstone tests, production security and business approval are not yet evidenced.
