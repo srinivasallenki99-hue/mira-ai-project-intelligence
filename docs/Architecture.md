@@ -1,13 +1,94 @@
 # Mira – Solution Architecture
 
-**Version:** 1.5 (proposed)  
-**Status:** Architecture design for no-code MVP  
-**Based on:** Mira PRD v1.1, proposed FR-019–FR-026 change request, and TDD v1.4  
-**Stack:** Langflow · OpenAI GPT-4o-mini · LangWatch · GitHub
+**Version:** 2.0 – Production Target (proposed)  
+**Status:** Production target design – implementation and approvals pending  
+**Based on:** Mira PRD v1.1, proposed production PRD v2.0, and TDD v2.0  
+**Stack:** Authenticated Portal · Langflow · OpenAI · LangWatch · GitHub · Managed Data/Queue/Monitoring Services
 
-> **Scope clarification:** The original two diagrams below are retained from v1.3. Diagram 3 adds the proposed proactive monitoring extension. **The extension is not part of the approved PRD v1.1 baseline until change control approves FR-019–FR-026.**
+> **Production change:** Diagrams P1–P2 show the intended production implementation. The five original logical/capstone diagrams are retained for historical traceability. Additional production requirements must be approved in PRD v2.0 before go-live.
 
-> **Scope clarification:** Users initiate data imports through Mira's user interface. The MVP supports file uploads; Jira/Trello read-only import is an optional future integration. A unified Mira UI, deterministic calculations, and an embedded approval control are **target architecture capabilities** and must be validated or implemented; they are not assumed to be built-in Langflow Playground functions.
+> **Experience design:** The production portal supports authorized project selection, approved uploads, optional authorized read-only Jira/Trello imports, report preview and durable reviewer approval. These are application capabilities to build and validate—not automatically provided by Langflow Playground.
+
+
+## Diagram P1 — Production deployment and data/control planes
+
+```mermaid
+flowchart TB
+  U["PM / TPM / Approver"] --> UI["Authenticated Project Portal
+Project Selector + Upload + Review"]
+  IDP["Enterprise IdP / OIDC / MFA"] --> UI
+  UI --> WAF["WAF + API Gateway + Rate Limits"]
+  WAF --> AUTH["Project RBAC / Authorization Service"]
+  AUTH --> REG[("Project Registry / Memberships")]
+  AUTH --> ING["Secure Ingestion + Virus Scan + Schema Validation"]
+  ING --> OBJ[("Encrypted Object Store / Versioned Files")]
+  ING --> DB[("Managed Project Data + Reports + Approvals")]
+  AUTH --> Q["Durable Job Queue / Worker Dispatch"]
+  Q --> LF["Private Langflow Orchestrator"]
+  LF --> P["Planner"]
+  LF --> R["Risk Assessor"]
+  LF --> S["Status Reporter"]
+  LF --> M["Milestone Tracker"]
+  P --> V["Fact / Schema Validation"]
+  R --> V
+  S --> V
+  M --> V
+  DB --> LF
+  LF --> LLM["OpenAI Approved Model"]
+  V --> DB
+  DB --> APPROVE["Audited Approval State Machine"]
+  APPROVE -->|"Approved only"| PUB["Export / Approved Distribution"]
+  SC["Managed Scheduler / Verified Source Webhooks"] --> CON["Jira / Trello Read-only Sync"]
+  CON --> ING
+  SC --> RULE["Deterministic Monitoring Rules"]
+  DB --> RULE
+  RULE --> ALERT[("Alert Registry + Notification Outbox")]
+  ALERT --> NOTIFY["Email / Slack / Teams Notification Worker"]
+  NOTIFY --> U
+  LF -.-> TRACE["LangWatch AI Traces"]
+  AUTH -.-> AUDIT[("Security + Activity Audit Log")]
+  APPROVE -.-> AUDIT
+  RULE -.-> OPS["Operations Metrics / On-call Alerts"]
+  GIT["GitHub / CI-CD + Approved Releases"] -.-> LF
+```
+
+**Implementation status:** Target-state blueprint; not a claim that enterprise SSO, queue, persistence, automated approval, or CI/CD are currently deployed. The Langflow workers run behind private authenticated ingress. Each data service verifies tenant/project scope independently.
+
+## Diagram P2 — Production data intake, report approval and automated milestone lifecycle
+
+```mermaid
+flowchart TD
+ A["Authenticated PM / TPM"] --> B["Select Authorized Project"]
+ B --> C{"Provide Data"}
+ C -->|"Upload"| D["Scan + Parse Files"]
+ C -->|"Jira/Trello"| E["OAuth Read-only Import"]
+ D --> F["Validate + Version Source Snapshot"]
+ E --> F
+ F -->|"Invalid / stale"| X["Quarantine or Data Quality Alert"]
+ F -->|"Valid"| G["Project-Scoped Snapshot"]
+ G --> H["Request Plan / Risk / Status / Milestones"]
+ H --> I["Langflow Specialist + Deterministic Rules"]
+ I --> J["Validate Schema + Provenance"]
+ J -->|"Fail"| K["Fix Data / Regenerate Draft"]
+ K --> I
+ J -->|"Pass"| L["Persist Immutable Draft"]
+ L --> N{"Human Reviewer Decision"}
+ N -->|"Reject"| K
+ N -->|"Approve"| O["Lock Approval + Report Hash"]
+ O --> P["Authorized Publish / Export"]
+ G --> SCH["Scheduled or Event Monitoring"]
+ SCH --> R["Deduplicate + Persist Risk Alert"]
+ R --> S["Notify Owner Automatically"]
+ S --> T["Acknowledge + Mitigation"]
+ T --> V{"Resolved?"}
+ V -->|"No / SLA breach"| W["Escalate + Recheck"]
+ W --> SCH
+ V -->|"Yes"| Z["Close with Evidence + Audit"]
+```
+
+**Approval separation:** Internal risk alerts are automatically dispatched; stakeholder-facing reports cannot be published until approval is persisted and server-side authorization is enforced. Rejected/modified drafts require new approval. Scheduled monitoring requires fresh authorized snapshots.
+
+---
 
 ## Diagram 1 — Target logical solution architecture
 
@@ -269,3 +350,8 @@ flowchart TD
 - **Approval policy:** PM notification on a risk is immediate once validation passes. Only corrective commitments, customer-facing communications and final reports require approval.
 - **Observability:** LangWatch captures LLM activity; monitor scheduler run success, source freshness, delivery success and acknowledgement status separately, because LLM traces do not prove notifications were delivered.
 - **PRD change:** FR-019–FR-026 and acceptance criteria must be reviewed/approved for proactive alerts before claiming the expanded scope is part of the MVP.
+
+
+## Production release interpretation
+
+Diagrams 1–5 below the production views remain the original logical/capstone diagrams and T1–T12 pathway. Diagrams P1–P2 are **normative production target-state** and supersede simplified earlier deployment/approval depictions where inconsistent. No production readiness is implied without the TDD v2.0 P01–P15 gates.
