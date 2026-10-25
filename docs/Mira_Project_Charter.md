@@ -1,23 +1,27 @@
 # Mira – Project Charter
 
-**Version:** 1.0  
-**Status:** Draft for sponsor and architecture review; not authorized for production launch  
+**Version:** 1.1 – n8n-only implementation rebaseline (from Charter v1.0)  
+**Status:** Proposed program baseline; ADR-014 and sponsor approval pending; not implemented or authorized for production launch  
 **Prepared:** October 25, 2026  
 **Initiative:** Mira – AI-Powered Project Intelligence Assistant  
 **Delivery organization:** Nexora Pvt. Ltd.  
 **Initial business context:** ABCDE Ltd. six-month AI Adoption Project  
 **Charter owner:** AI PM / TPM (name to be assigned)  
 **Executive sponsor:** Nexora CTO (proposed; confirmation required)  
-**Baseline references:** Mira PRD v1.1; `Technical_Design_Document.md` v2.0; `Architecture.md` v2.0  
-**Scope-control note:** PRD v2.0 and production funding/approval are pending. This charter distinguishes the **capstone proof of concept** from the **proposed production program**.
+**Baseline references:** Mira PRD v1.1 (business and capstone requirements); `Technical_Design_Document.md` v2.1; `Architecture.md` v2.1; historical Charter v1.0, TDD v2.0 and Architecture v2.0 retained in Git history  
+**Scope-control note:** This revision changes the **proposed technical implementation baseline**, not the approved requirements. PRD v2.0 / CR-PROD-001 and production funding/approval remain pending. The **capstone proof of concept** and **proposed production program** have distinct authorization gates. See §15 (ADR-014).
 
 ---
 
 ## 1. Executive summary and authorization requested
 
-Mira will reduce the repetitive project-governance burden on Nexora PMs/TPMs through a governed multi-agent assistant. Four Langflow specialist capabilities—**Planner, Risk Assessor, Status Reporter, and Milestone Tracker**—will use approved project data to produce grounded plans, risk matrices, status reports, and milestone intelligence. A Router/Dispatcher directs requests; deterministic data operations provide factual counts and dates; human approval governs final report publication.
+Mira is a proposed, governed **AI-powered project intelligence assistant** for Nexora PMs/TPMs, initially grounded in the ABCDE Ltd. six-month AI Adoption Project. It addresses slow manual planning (3–4 hours), weekly status production (1–2 hours), inconsistent risk reviews, and late detection of blocked work.
 
-This charter seeks **approval to initiate discovery, design validation, and a controlled capstone proof of concept**. A separate sponsor-approved business case, PRD v2.0, funding, security reviews, and release gates are required before any production deployment or 10-user pilot using real client data.
+**Implementation rebaseline from Charter v1.0:** Mira retains four **logical specialist AI capabilities**—**Planner, Risk Assessor, Status Reporter, and Milestone Tracker**—but implements them as reusable **n8n sub-workflows**, coordinated by one n8n business/AI orchestrator. Approved project files and, in a separately authorized production phase, read-only Jira/Trello data provide authoritative facts. n8n performs deterministic record validation, filtering, counting and rule evaluation **before** optional LLM calls. Stakeholder reports remain drafts until an authorized PM/TPM reviews and approves them; internal evidence-backed warnings need not wait for report approval.
+
+**Why the change:** The earlier Langflow-first design and evaluated n8n–Langflow hybrid introduced either additional business-automation dependencies or a second service boundary. n8n-only is proposed as the **lower-complexity capstone implementation** while preserving all baseline business acceptance cases. This is an architectural choice pending review and experimental confirmation, **not evidence that n8n or the project is production ready**.
+
+**Authorization requested now:** Approve a limited capstone/discovery phase using approved synthetic or assignment data, n8n environment access, controlled model expenditure, and G1–G7 test activities. **Not requested/authorized:** production release, real-client sensitive data, enterprise-wide access, unattended external stakeholder publication, or the proposed 10-user production pilot. These require PRD v2.0 / CR-PROD-001, budget, security, legal/privacy and operational sign-offs.
 
 ## 2. Business problem and opportunity
 
@@ -44,42 +48,58 @@ This charter seeks **approval to initiate discovery, design validation, and a co
 | Better plan productivity | Target ≤30 minutes total PM time per plan, including review, versus 3–4 hours | Pilot; to be validated |
 | Better report productivity | Target ≤15 minutes total PM time per report, including review, versus 1–2 hours | Pilot; to be validated |
 | Earlier detection | 100% detection of seeded blocked tasks in controlled tests; measure time-to-detect for source updates | Capstone / production pilot |
-| Reliable monitoring | Proposed ≥99% scheduled-monitor success and notifications within 15 minutes of successful detection | Production pilot; requires approval |
+| Reliable monitoring | Proposed ≥99% scheduled-monitor success; notifications within 15 minutes **after successful detection**, subject to source freshness and approved policy | Production pilot; requires approval |
 | Governed communications | 100% of externally distributed reports require a recorded human approval | Production pilot |
 
 Targets are provisional and must be approved by sponsors before they become service commitments. No system can guarantee prevention of every milestone delay.
 
 ## 4. Scope and phased deliverables
 
-### Phase A – Capstone / controlled proof of concept (baseline PRD v1.1)
+### Phase A – Capstone / controlled proof of concept (PRD v1.1 preserved)
 
-**In scope:** Single approved ABCDE project dataset; TXT/CSV ingestion; Router; four specialist Langflow flows; grounded planning and risks; deterministic status filtering/counts; on-demand blocker and milestone tracking; Sprint 2 stakeholder email **draft**; 12 baseline tests; LangWatch traces where integration is supported; GitHub export and documentation; PM manual review before sharing.
+**In scope:** Single ABCDE project baseline (`ABCDE-AI-001` as proposed internal identifier); source files `project_description.txt`, `project_timeline.csv`, `project_risks.csv`, `sample_task_board.csv`, and `eval_mira_inputs.txt`; approved TXT/CSV file ingestion; n8n Form Trigger or controlled test inputs; extraction, schema checks, field normalization and deterministic task/date logic; n8n **Router/Dispatcher** (`Switch`/`IF`) and four reusable specialist sub-workflows (`Execute Sub-workflow`); source-grounded plans and risks; sprint-specific status reporting; on-demand blocker and upcoming-milestone checks; a **draft-only** Sprint 2 stakeholder email; human PM/TPM review; all T1–T12 evaluations; n8n execution/evaluation and model-token/cost records as technically available; redacted evidence and reviewed workflow JSON committed to GitHub.
 
-**Out of scope:** Production SSO, multi-tenant authorization, enterprise portal, live Jira/Trello sync, automatic stakeholder emails, production uptime guarantees, and unattended scheduled escalations.
+**Blocking technical spike, MIRA-001:** Ingest the real 25-row task-board fixture; reconcile **3 Done, 3 In Progress, 1 Blocked, 18 To Do**; identify **T024 Security review** as blocked; prove Sprint 3 filtering and missing/duplicate/unknown-status rejection; never use an LLM to calculate counts. Actual CSV headers and data must be inspected before node mapping is declared correct.
 
-**Required deliverables:** PRD and architecture documents; exported Langflow JSON flows; evaluation records for T1–T12; model cost and latency analysis; workflow and trace screenshots; program charter; reflection; GitHub README with reproduction instructions.
+**Out of scope:** Production-grade SSO/project membership, real-client data without authorization, authenticated multi-project portal, live Jira/Trello sync, autonomous Jira/Trello updates, production SLOs, durable automated approval enforcement, unsupervised external publication, and unattended escalations.
 
-### Phase B – Production engineering / controlled pilot (proposed change, approval pending)
+**Required artifacts:** Updated PRD implementation addendum if platform references conflict, TDD v2.1, Architecture v2.1, this Charter v1.1, GitHub README, actual exported **n8n JSON** workflows under `n8n/`, prompt and schema documentation, T1–T12 execution ledger and screenshots, LLM unit-cost/latency and failure-path observations, reflection/Q1–Q4 materials, and reproducible import instructions. **Do not label architecture diagrams or placeholder exports as executed evidence.**
 
-**Proposed in scope:** Authenticated project portal and authorized Project Selector; project registry and access controls; secure uploaded-file ingestion; optional read-only Jira/Trello connectors; persistent source versions, reports, and approval records; deterministic data services; scheduled and event-driven milestone monitoring; deduplicated notifications; acknowledgement and escalation; audit trails; CI/CD, backups, monitoring and incident response; pilot with 10 PMs/TPMs.
+### Phase B – Production engineering / limited pilot (change-controlled, not authorized)
 
-**Proposed out of scope unless separately approved:** Autonomous schedule or task changes, unsupervised external publishing, automatic remediation, enterprise-wide rollout, and predictive claims unsupported by source data.
+**Proposed in scope:** Authenticated project portal and authorized Project Selector; trusted business-project RBAC; approved project registry; encrypted, versioned data store and snapshots; secure scanning/validation of uploads; optional authorized **read-only** Jira/Trello integration; persistent reports, human approvals and decisions; n8n Schedule Trigger/source-event monitoring and deterministic rules; durable deduplicated alert register, notification outbox, acknowledgement, owner action and escalation; controlled secrets, model/provider governance, monitoring and incident response; backup/restore and staged deployment; **P01–P15 production verification**; an initial **10-PM/TPM controlled pilot** subject to approval.
 
-**Scope rule:** Phase B is not authorized by completion of Phase A. It requires PRD v2.0 approval and a funding/security/operations go/no-go decision.
+**Out of scope without subsequent authorization:** Automatic task or committed-baseline changes, unsupervised stakeholder email sending, AI-led remediation, unsupported predictive claims, customer-wide onboarding and enterprise-scale rollout.
+
+**Scope protection:** The production extension (FR-019–FR-026 / CR-001, also tracked under CR-PROD-001 for PRD v2.0) does not become capstone scope merely because it appears in a target-state diagram. Phase B requires a fresh go/no-go decision.
 
 ## 5. Solution approach and architecture
 
-- **Experience:** Langflow Playground for Phase A; authenticated Mira portal with a project selector for Phase B.
-- **Inputs:** User-selected file upload, or authorized read-only Jira/Trello import in Phase B. The project registry scopes all data by `project_id`.
-- **Orchestration:** Langflow Router/Dispatcher invokes Planner, Risk Assessor, Status Reporter, or Milestone Tracker.
-- **Model:** OpenAI GPT-4o-mini initially, subject to quality, cost, security and model availability reviews.
-- **Data integrity:** Deterministic grouping, counting, date evaluation, validation, source ID preservation, data freshness and version pinning. No LLM-only arithmetic.
-- **Workflow:** Ingest → Validate → Select project context → Route → Generate draft → Validate output → PM/TPM review → Approve/reject → Publish approved artifact.
-- **Proactive path (Phase B):** Scheduler/source event → Retrieve fresh authorized data → Evaluate fixed risk rules → Persist/deduplicate alert → Notify owner → Acknowledge/assign action → Escalate unresolved alerts → Recheck and resolve.
-- **Observability:** LangWatch, platform operational telemetry, and audit records with appropriate redaction/access control.
-- **Versioning:** GitHub for requirements, designs, test evidence, and exported Langflow workflow JSON. JSON uploads alone do not deploy or synchronize runtime services.
+**Reference implementation:** `docs/Technical_Design_Document.md` v2.1 and `docs/Architecture.md` v2.1 (seven GitHub-renderable Mermaid diagrams). ADR-014 records the recommendation and review conditions.
 
-The production architecture, including security and operations, is documented in `docs/Architecture.md` and `docs/Technical_Design_Document.md`. No-code-first remains a preference; a feasibility gate must verify that exact calculations and reliable alert processing can be implemented with approved components.
+| Architecture capability | Phase A implementation / owner | Phase B extension (subject to authorization) |
+|---|---|---|
+| User experience | n8n test form/test webhook and developer execution; assignment data only | Enterprise-authenticated portal, project selector and controlled uploads |
+| Source ingestion | `Form Trigger` / `Extract From File` plus no-code validation | Secure source gateways and approved read-only Jira/Trello ingestion |
+| Project scoping | Fixed, checked `project_id`; avoid implicit ABCDE context on data-free tests | Verified user membership and tenant/project authorization **before** lookup |
+| Orchestration | n8n `Switch`/`IF` router + `Execute Sub-workflow` | Governed n8n runtime with approved throughput/concurrency |
+| Specialist AI | Planner, Risk Assessor, Status Reporter, Milestone Tracker as **four independently testable n8n sub-workflows** | Reusable, versioned AI contracts with supported model and prompt governance |
+| Facts and rules | Node/data-service calculated counts, filters, IDs and dates; AI cannot override | Persisted deterministic rules, freshness policy, alerts and audit |
+| Model | Approved OpenAI model selected and pinned for reproducible test runs; prior GPT-4o-mini is a historical candidate, not an indefinite mandate | Privacy-vetted provider/model with quality, security, pricing and lifecycle review |
+| Draft review | Manual PM/TPM confirmation; no automatic distribution | Durable reviewer identity, approval version, immutable decision record and publication gates |
+| Monitoring | n8n execution history, captured model usage and evaluation ledger; redacted GitHub evidence | Dedicated security/operational telemetry, independent audits, incident and recovery monitoring |
+| Source control | Actual reviewed n8n workflow JSON, prompts, schemas and tests in GitHub | Approved version promotion, release manifests, backup and rollback |
+
+**Workflow boundaries:**
+
+1. **User request → approved input → validation and source scoping.** Missing source data must not trigger a fabricated answer.
+2. **n8n router → one relevant specialist (or bounded multi-step plan).** Prefer deterministic routing for explicit intents; avoid redundant LLM router calls.
+3. **Deterministic facts/rules → optional AI narrative → schema/factual validation → draft artifact → PM/TPM review.** Preserve source record IDs and snapshot references.
+4. **Phase B monitoring:** verified schedule/source event → fresh authorized snapshot → rules → idempotent persisted alert → PM/TPM notification → acknowledgement/action/escalation → recheck/resolution. Do not hold immediate **internal** safety alerts behind stakeholder-report approval.
+
+**Trust boundary:** n8n workspace/editor access is **not** end-user project-level authorization. An authenticated portal, trusted access service, per-project data policies and credential isolation are required for production. The n8n Form Trigger is only a capstone convenience, not a complete enterprise portal. Use sanitized fixtures and do not expose sensitive client data on public test forms.
+
+**No-code-first qualification:** `Summarize`, `Filter`, `IF`, `Date & Time`, expressions and node mappings are implementation candidates, not proof that all uniqueness, branch-join and calendar rules work without code. Gate G3 validates them on actual fixtures. If inadequate, request explicit authorization for a small deterministic service rather than approximating with AI.
 
 ## 6. Governance, stakeholders and decision rights
 
@@ -96,68 +116,86 @@ The production architecture, including security and operations, is documented in
 
 **Decision framework:** Product Owner may prioritize within an approved phase; Technical Architect approves design within organizational delegated authority; sponsor approves material cost, production scope, and business exceptions. Security/privacy owners must approve real-client data use and production access controls. No person may self-approve a report where separation of duties is required by policy.
 
-**Meeting cadence (proposed):** Weekly delivery review; fortnightly architecture and risk review; phase-gate steering meeting. Maintain a decision log, RAID log, issue backlog, and change-request register.
+**Meeting cadence (proposed):** Weekly delivery review; fortnightly architecture and risk review; phase-gate steering meeting. ADR-014 and n8n G1–G7 readiness require named reviewers. Maintain a decision log, RAID log, issue backlog, and change-request register.
 
-## 7. Delivery plan and milestones
+## 7. Delivery plan, milestones and decision gates
 
-| Gate / milestone | Deliverable and exit evidence | Owner | Timing |
+**Single traceable gate register:** The charter intentionally adopts the TDD v2.1 identifiers **G1–G10** rather than reusing Charter v1.0's different G1–G5 labels. **C0** is the charter authorization checkpoint. Phase B requires independent production verification **P01–P15**.
+
+| Gate | Deliverable and objective evidence | Accountable reviewer | Stage |
 |---|---|---|---|
-| G0 – Charter baseline | Sponsor reviews scope, owner, success metrics and funding assumptions | Sponsor / PM | Before delivery |
-| G1 – Requirements/data readiness | Approved PRD v1.1, data files obtained, schemas and sample counts verified | PM / Data owner | Phase A discovery |
-| G2 – No-code feasibility | Exact 25-row count, Sprint 3 filter, T024 blocker, deterministic date check demonstrated | Architect / Implementer | Before full build |
-| G3 – Agent completion | Four independently executable specialist flows and router | Technical lead | Phase A build |
-| G4 – Capstone quality gate | T1–T12 results, source grounding, cost/latency observations and trace evidence | QA/Eval owner | Phase A evaluation |
-| G5 – Capstone delivery | GitHub exports, README, screenshots, Q1–Q4 documents | PM | Phase A close |
-| P0 – Production authorization | PRD v2.0, approved budget, threat model, data processing and architecture sign-offs | Sponsor/Security | Prior to Phase B |
-| P1 – Production platform | SSO, authorization, storage, queue, environments and deployment controls | Platform lead | Phase B build |
-| P2 – Proactive controls | Source refresh, scheduler, alert register, notifications, acknowledgements and escalations | Technical lead / PM | Phase B integration |
-| P3 – Production readiness | Security, load, recovery, approval bypass, isolation and alert reliability tests | Security/SRE/QA | Before pilot |
-| P4 – Limited pilot | 10 authorized PMs/TPMs; monitored KPIs and incident process | Product Owner | After P3 |
-| P5 – Scale decision | Evidence-based benefit, cost, security and operations review | Sponsor | Post-pilot |
+| **C0 – Charter / ADR** | Confirm scope boundaries, owners, funding assumptions, ADR-014 selection and trial-data policy | Sponsor / CTO delegate | Before Phase A authority |
+| **G1 – Platform** | n8n workspace/approved host, scoped OpenAI credential, security settings and export/import smoke test | Platform / Architect | Phase A |
+| **G2 – Source readiness** | Inspect five original capstone files; approve classification, CSV schemas, records, as-of dates and evaluation fixtures | Data owner / QA | Phase A |
+| **G3 – MIRA-001** | Verified 25 task rows; **3/3/1/18**; T024; Sprint 3 scoped result; invalid-input tests; deterministic processing | Architect / QA | Phase A **blocker** |
+| **G4 – Specialists** | Four separately executable n8n specialist sub-workflows with input/output and insufficient-data contracts | Technical lead / QA | Phase A |
+| **G5 – Router and review** | Documented `Switch`/`IF` dispatch, no-data handling, PM/TPM draft review, no unauthorized send | PM/TPM / Architect | Phase A |
+| **G6 – Evaluation** | Run **T1–T12**, record pass/fail and defects, traces/executions, token use, model cost and latency | QA/Evaluation lead | Phase A |
+| **G7 – Capstone release** | Reviewed n8n JSON, README, diagrams, charter, tests, screenshots, reproduction and rollback smoke test | PM/TPM + Architect | Phase A exit |
+| **G8 – Production scope** | Sponsor approves PRD v2.0 / FR-019–FR-026, business thresholds, policy, funding and risk ownership | Sponsor / Product Owner / Security | **Phase B entry** |
+| **G9 – Alert POC** | Scheduled check, freshness test, durable alert deduplication, verified delivery and acknowledgement | Delivery operations / SRE | Phase B |
+| **G10 – Production controls** | Security, isolation, approval integrity, backup/recovery, quotas, P01–P15 and approved operating targets | Security / SRE / CTO delegate | Pre-pilot |
+| **Pilot / scale decision** | Ten authorized PMs/TPMs, measurable benefits, support readiness, incident results, written go/no-go | Sponsor / Product Owner | After G10 |
 
-**Schedule note:** The earlier three-week capstone plan remains an indicative proof-of-concept schedule, not a production commitment. Dates for Phase B require estimates after technical feasibility and vendor/integration discovery.
+**Indicative sequence:** Week 1 – C0/G1/G2/G3; Week 2 – G4/G5; Week 3 – G6/G7. This is a planning hypothesis for a capstone, **not** an agreed schedule or capacity guarantee. Re-estimate after G3 feasibility and confirmed contributors. Production timeline/budget are independently planned after G8.
 
-## 8. Budget, resources and dependencies
+**Delivery controls:** GitHub issues linked to FR IDs/tests; weekly RAID/decision review; short demo at each gate; scope change log; no fabricated completion checkmarks; rollback of broken workflow imports using reviewed exports. GitHub commits do not deploy n8n automatically; plan-dependent features require license verification.
 
-**Budget status:** Not estimated or approved. A bottom-up budget must cover Langflow hosting, LLM tokens, no-code integration/portal subscriptions, observability, managed storage and data services, security, testing, operational staffing, and contingency. Avoid treating capstone token cost as total production operating cost.
+## 8. Budget, resources, economics and dependencies
 
-**Key dependencies:** Original five capstone files; OpenAI credential and usage budget; compatible Langflow and LangWatch runtime; GitHub repository; confirmed ownership of Jira/Trello source permissions if enabled; project membership and authorization model; approved notification channel and sender identity; an accessible, authenticated Langflow endpoint for external no-code automation; and PM availability for acceptance/approval.
+**Budget status:** No approved cost baseline or staffed delivery capacity exists in the supplied charter. The sponsor must approve project funding before production. Track capstone free/trial limits and permitted model usage; do not imply a commercial plan is included at no charge.
+
+**Capstone cost ledger** (record actuals): n8n Cloud subscription/trial or approved self-hosted operations, OpenAI **input/output tokens by model**, workflow executions, test repetitions, retries and optional evaluation tooling. Token-price formula: `LLM cost = (input tokens × approved input rate + output tokens × approved output rate) / 1,000,000` when rates are quoted per million tokens. Include model version, date/rate source and call count. **No platform has an intrinsic token-price advantage when token counts/model match.**
+
+**Production cost categories:** n8n hosting/license/edition, secure portal/auth services, storage and backups, connector/API access, notification provider, model usage, external logging, cybersecurity/compliance, staffing/on-call, load/evaluation tests, recovery infrastructure, contingency and vendor support. Compare **total cost per accepted report** and **per monitored project**, not only LLM cost.
+
+**Key dependencies:** Original five source/evaluation files; confirmed data owner and approved synthetic-data classification; n8n environment and licensed feature availability; approved API-key secret store/provider access; GitHub repository and reviewer; PM/TPM acceptance availability; source schemas and task status taxonomy; optional Jira/Trello permission scope; production portal/IdP; data store and alert outbox; notification channel and on-call ownership. No n8n→Langflow HTTP dependency, Make.com subscription or LangWatch runtime is required by the selected baseline.
+
+**Workforce assumptions:** Named accountable owners are pending. In the capstone, one person may perform several build/test roles, but approval and security separation-of-duties requirements must not be waived in a production environment.
 
 ## 9. Risk, assumptions, issues and dependencies (RAID)
 
-| Risk | Potential impact | Treatment / owner |
+| Risk ID / concern | Business or technical impact | Mitigation, gate and owner |
 |---|---|---|
-| No-code components cannot calculate exact counts or dates | False project reports | Mandatory G2 technical spike; approved deterministic no-code fallback; Architect |
-| Stale uploads or delayed Jira/Trello updates | Missed early warnings | Data freshness thresholds, sync health warnings; Data owner |
-| LLM fabricates milestones, task causes or priorities | Misleading decisions | Source IDs, schemas, rule checks, human review, AI evals; QA/Technical lead |
-| Cross-project or unauthorized data access | Client data breach | Server-side project authorization, RBAC, negative tests; Security |
-| Failed or repeated alert deliveries | Missed or noisy escalations | Durable alert state, deduplication, retries and dead-letter handling; Platform lead |
-| PM never acknowledges or acts | Continued milestone exposure | Escalation SLAs and owner substitution; Delivery lead |
-| Vendor outage / cost overrun | Interrupted service or unexpected expense | Cost limits, circuit breakers, incident procedure and fallback; Platform lead |
-| Human approval bypassed | Unapproved external communication | Enforced state transitions and audit trail; Security/PM |
-| LangWatch traces expose confidential content | Privacy/contractual risk | Redaction, retention, access and processor review; Privacy lead |
-| Production feature creep | Delay and budget overrun | PRD v2.0 change control and phase-gate decisions; Sponsor/PM |
+| R01 – n8n no-code node semantics unproven | Wrong counts, IDs, dates or incomplete joins | **G3 MIRA-001**: reconcile actual CSV, uniqueness, unknown statuses, date tests; Architect/QA |
+| R02 – Workflow branch loses project context | Mis-scoped report or mixed-project data | Explicit `project_id`, trusted authorization in Phase B, negative tests P02; Security/Data owner |
+| R03 – LLM invents task facts or planned dates | Misleading status/risk decisions | Deterministic facts, data-source IDs, schema assertions, missing-data tests and reviewer; QA |
+| R04 – Upload/API data stale, malformed or malicious | Missed alerts, prompt injection, privacy incident | Validation, source timestamps, quarantine, read-only access and P03/P04/P09; Data/Security |
+| R05 – n8n forms/workspace are mistaken for an enterprise portal | Client data exposure | Synthetic capstone data only; SSO + trusted project RBAC in Phase B, P01/P02; Security |
+| R06 – Single n8n runtime fails or hits plan limits | Business/AI automation outage and lost checks | Hosting/edition due diligence, retry/outbox/backups, scale and recovery tests; SRE |
+| R07 – Alert retries create duplicate notifications | Alert fatigue and repeated escalation | Durable alert lifecycle, idempotency keys, outbox/dead-letter, P05–P07; Ops/SRE |
+| R08 – Human approval bypass or report tampering | Unauthorized stakeholder communication | Draft-only Phase A, durable role-aware approval before publication in Phase B, P08; Product/Security |
+| R09 – Model/provider version or pricing changes | Quality regressions or unpredictable usage costs | Model pinning, regression runs, budget caps and provider review; Architect/Finance |
+| R10 – n8n evaluation/telemetry gaps | Weak evidence for instructor or release decision | G6 evidence ledger, compare evaluation functionality in subscribed edition; QA |
+| R11 – n8n JSON export leaks credentials/payloads | Exposure through GitHub | Credential/redaction review, least privilege, secret scanning, P10; Security |
+| R12 – Feature and scope inflation | Delivery delay and unclear approvals | Strict G8 production authorization, RAID/change log, PRD v2.0; Sponsor/PM |
 
-**Assumptions:** Phase A uses approved capstone data; real-client data is not processed without authorization; additional project samples are demonstration fixtures unless supplied and approved; source-to-milestone dependencies may be unavailable and must not be inferred.
+**Assumptions:** Phase A handles approved instructional/synthetic datasets; real client data, production user identity and integrations are **not** available by implication. Missing dependencies or field mappings are marked **unknown**, not inferred. Workflow features, pricing, security capabilities and execution limits must be validated in the actual n8n edition and hosting plan.
+
+**Current blocking issues:** (a) confirm the five authentic assignment files and headers; (b) verify MIRA-001 counting/uniqueness/sprint tests with an actual execution; (c) obtain ADR-014/C0 sign-off; (d) confirm pilot owners and data-access approvals if Phase B is initiated.
 
 ## 10. Quality, acceptance and release gates
 
-### Capstone acceptance
+### Phase A – Capstone evaluation and exit criteria
 
-The baseline evaluation must run all **T1–T12** with recorded input, expected result, actual result, pass/fail, workflow/model/dataset version, trace evidence where available, defects and remediation:
+Run the unmodified **T1–T12** baseline with each test's input, source fixture/version, expected behavior, actual output, pass/fail, exact error, responsible owner, defect/retest status, workflow export version, model and prompt version, per-test latency and model usage/cost when available. The target is **12/12 demonstrated passes after remediation**; a drafted diagram or prompt does not count as an execution pass.
 
-- **T1/T2/T9:** Grounded detailed plan or clarification for insufficient detail.
-- **T3/T4/T7:** Relevant risk assessment, clarification, and top-three selection from the actual risk register.
-- **T5/T6/T10/T12:** Sprint-specific status, no-data honesty, exact board counts, and a Sprint 2-only stakeholder email draft.
-- **T8/T11:** Detect T024 blocked and select actual milestones within an explicit fourteen-day test window.
+| Test cases | Required evidence |
+|---|---|
+| **T1/T2/T9 – Planning** | Source-grounded full ABCDE plan; clarification instead of invented scopes/timelines for missing-input cases |
+| **T3/T4/T7 – Risks** | Project-specific risk matrix and top-three grounded in actual risk source; no invented risks for empty input |
+| **T5/T6/T10/T12 – Status & drafts** | Sprint 3 filtered actual board; honest no-data response; exact 25-row count **3 Done / 3 In Progress / 1 Blocked / 18 To Do**; Sprint 2-only stakeholder email **draft** |
+| **T8/T11 – Milestones** | T024 Security review correctly BLOCKED; upcoming milestones strictly from source timeline and test as-of date |
 
-Design coverage is not a test pass. Target 12/12 after defect remediation; no unverified test is reported as passed.
+**Mandatory safeguard:** T2/T4/T6/T9 must not silently inherit ABCDE data. Sprint 2 email must exclude Sprint 3 and later work. On-demand milestone windows need an explicit reference date; data freshness/actual due dates determine claims.
 
-### Additional production acceptance
+**Quality dimensions:** correctness, source traceability, incomplete-input handling, safe refusal/clarification, schema adherence, task-ID reconciliation, failed-branch behavior, agent independence, response time, measured model calls/token spend, and reproducibility. Proposed targets in §3 are subject to approval and measurement.
 
-Before production pilot, evidence must demonstrate: SSO/MFA, deny-by-default project authorization, malicious upload handling, source freshness, prompt-injection defenses, report approval immutability, notification delivery/retry/deduplication, acknowledgement/escalation, deployment rollback, recovery drills, and load/availability measures. The production TDD contains the detailed production verification matrix.
+### Phase B – Production verification, not implied by capstone completion
 
-**Proposed operating objectives requiring approval:** 99.9% monthly availability; routine status report p95 ≤30 seconds under defined load; ≥99% successful scheduled checks; backup RPO ≤1 hour; restore RTO ≤4 hours. These are not achieved values or unconditional SLAs.
+All **P01–P15** in TDD v2.1 §27 require evidence in production-like staging, including: identity and cross-project denial; malicious file and prompt attacks; stale-source fail-safe; scheduled checks; duplicate-alert and notifier-outage behavior; immutable approval; credential/log redaction; restore/rollback; rate limits; incident paging; and **T1–T12 regression**. SRE/Security/CTO delegate must sign release evidence.
+
+**Proposed service objectives (not achieved SLAs):** 99.9% monthly request availability, routine report-generation p95 ≤30 seconds under defined load excluding reviewer waiting, ≥99% successful monitored checks, recovery RPO ≤1 hour / RTO ≤4 hours where the chosen n8n plan and architecture can support them. Alert notification target: within 15 minutes **of successful detection**, not necessarily within 15 minutes of real-world condition onset; source refresh cadence must be specified.
 
 ## 11. Proactive milestone alert lifecycle and human controls
 
@@ -179,7 +217,7 @@ Formal client-facing communications require an authorized reviewer and approved 
 
 ## 13. Rollout, adoption and benefits realization
 
-1. **Controlled POC:** Demonstrate approved data, specialist workflows, T1–T12 and repeatable GitHub artifacts.
+1. **Controlled POC:** Demonstrate approved data, n8n specialist sub-workflows, T1–T12 and repeatable GitHub artifacts.
 2. **Production readiness:** Implement and verify identity, isolation, ingestion, monitoring, approval, reliability and recovery.
 3. **Limited pilot:** Enroll 10 PMs/TPMs with authorized projects and clear support channels.
 4. **Measure benefits:** Compare actual plan/report preparation times, correction effort, detection latency, alert precision, false positives, user adoption and cost.
@@ -187,37 +225,78 @@ Formal client-facing communications require an authorized reviewer and approved 
 
 No automatic enterprise rollout is authorized by this charter.
 
-## 14. Change control and decisions outstanding
+## 14. Change control, baseline management and decisions outstanding
 
-- **CR-001:** Scheduled proactive monitoring, acknowledgement, notification and escalation—proposed addition to capstone MVP.
-- **CR-002:** Production portal, authorized Project Selector, SSO, project isolation and persistent approvals—proposed production scope.
-- Confirm actual dataset column names and project/milestone relationships.
-- Select and prove deterministic no-code aggregation and date evaluation.
-- Confirm the observability integration/runtime and associated privacy controls.
-- Select production data services, scheduler/automation, notification and alert-state storage.
-- Agree on alert thresholds, acknowledgement/escalation times and data freshness policy.
-- Approve budget, resource assignments, schedule, objectives, SLOs and operational handover.
+| Change / decision | Current status | Approval required |
+|---|---|---|
+| **ADR-014 – n8n-only implementation choice** | **Proposed as v2.1 design baseline**; replaces Langflow-first and hybrid in reference designs | Architecture authority / sponsor (as delegated); G3/G6 evidence |
+| **Charter v1.1 rebaseline** | This document proposed; retains business goals, two-phase program, governance and baseline tests | Sponsor / Product Owner |
+| **PRD v1.1 implementation language** | FR scope unchanged; any Langflow-specific prescriptions require a reviewed platform addendum | Product Owner / Architect |
+| **CR-001 / CR-PROD-001** | FR-019–FR-026 proactive monitoring and lifecycle proposed | PRD v2.0 / sponsor funding and policy authorization |
+| **CR-002 production portal / controls** | Authenticated selector, identity, project isolation and persistent approval proposed | Architecture/Security, sponsor funding |
+| **n8n licensing/hosting/model selection** | Trial/platform choices and approved model version pending | Platform/Security/Finance |
+| **MIRA-001 and acceptance rules** | Actual CSV mappings/real counts still to be executed | Data owner / QA / Architect |
+| **Monitoring policies** | Data freshness, thresholds, source schedule, notification channel, owner, acknowledgement/escalation pending | Product Owner / Delivery Ops / Security |
+| **Pilot resources and SLAs** | Ten-user pilot proposed, not scheduled or funded | Sponsor / SRE / Finance |
 
-## 15. Charter approval and sign-off
+**Change-control protocol:** Capture business request and impact (scope, cost, security, data, schedule and testing); review with architect/QA; obtain required approvals; update charter/PRD/TDD/Architecture and impacted test mapping; commit via reviewed GitHub PR; baseline release manifest; retest before promotion. Keep v1.0 Charter and v2.0 technical documents available historically; do not overwrite evidence with unapproved claims.
 
-| Approval role | Named approver | Decision | Date |
+## 15. Architectural baseline rationale – ADR-014: n8n-only vs. Langflow-only vs. hybrid
+
+**Decision context:** As the charter evolved from a capstone agent demo into a production-target project-governance system, the design acquired source ingestion, exact counts, scheduled monitoring, authorized integrations, report approval, alert state and escalation responsibilities. The earlier Langflow-first design addressed AI workflows but required additional business automation components; hybrid added two runtimes and a new service boundary.
+
+| Evaluated option | Strength for Mira | Trade-off | Charter disposition |
 |---|---|---|---|
-| Executive sponsor / CTO | TBD | Pending | — |
-| Product Owner / AI PM/TPM | TBD | Pending | — |
-| Enterprise Technical Architect | TBD | Pending | — |
-| Security / Privacy Lead (production phase) | TBD | Pending | — |
-| Platform / SRE Owner (production phase) | TBD | Pending | — |
+| **Langflow-only** | Rich visual AI graph and specialist agent composition | Requires additional implementation design for enterprise business integrations, schedules and durable approval/alert state | Not chosen for baseline |
+| **n8n + Langflow hybrid** | Dedicated AI platform separated from enterprise workflow automation | Authenticated n8n→Langflow API, cross-platform retries, two hosting/logging surfaces, added operational cost | Retained as contingency if evidence warrants |
+| **n8n-only** | One orchestrator supports source integration, exact processing, AI workflows, scheduled checks and human-review handoffs | Must prove no-code invariants, specialist quality, license/hosting features and recoverability | **Selected proposed implementation baseline**, approval pending |
 
-**Authorization requested now:** Start/continue Phase A discovery and capstone proof-of-concept work using approved test data. **No production deployment, real-client ingestion, scheduled external notifications, or funding commitment is authorized until the corresponding approvals are recorded.**
+**Design and TPM rationale:** Select the least complex architecture that meets business requirements and is defensible through evidence. Eliminate the unnecessary n8n→Langflow HTTP boundary and Make.com scheduling assumption; route explicit requests via `Switch`/`IF`, call only necessary AI specialists, perform status arithmetic deterministically, and retain report approval/audit separation. Fewer platforms may lower hosting and integration risk; **no automatic token-cost advantage** is claimed. Compare measured LLM calls, token usage, retries, report acceptance and cost per approved artifact.
 
----
+**Hard conditions before final ratification:** G3 exact source processing passes; G4 proves four reusable specialists; G5 shows controlled routing and draft review; G6 achieves and records T1–T12 results; G7 demonstrates safe export/re-import/rollback; hosting edition and vendor model are approved. A failed condition triggers a documented architecture review, which may benchmark a hybrid design against the same source fixtures. No project-specific adoption or deployment claim is permitted until evidence exists.
 
-## 16. Document control and references
+**Baseline impact summary:**
 
-- `docs/PRD.md` – Mira PRD v1.1 (baseline; proposed v2.0 required for production scope).
-- `docs/Technical_Design_Document.md` – Production target TDD v2.0.
-- `docs/Architecture.md` – Production target architecture v2.0, including Mermaid diagrams.
-- `testing/` – T1–T12 results and production verification evidence, once available.
-- `flows/` – Reviewed Langflow JSON exports, once implemented.
+| Element | Charter v1.0 / TDD v2.0 | This proposed baseline |
+|---|---|---|
+| Agent platform | Langflow Router/Run Flow specialists | n8n `Switch`/`Execute Sub-workflow`; four specialist n8n workflows |
+| Scheduling | Make.com or extra scheduler in production design | n8n Schedule Trigger/source events under CR-001 |
+| Workflow artifact | `flows/` Langflow JSON | `n8n/` n8n JSON; no manual Git upload implies deployment |
+| Operational traces | LangWatch principal AI trace assumption | n8n execution/evaluation evidence by default; optional vetted external telemetry |
+| Model | GPT-4o-mini historically proposed | Supported, approved version-pinned OpenAI model to be selected and benchmarked |
+| Requirements and gates | PRD v1.1 T1–T12, production objectives | **All preserved**; P01–P15 and FR-019–FR-026 remain separately gated |
 
-**Revision history:** v1.0 – Initial unified charter with capstone/production phase separation, business value, governance, proactive alerts, human approval and release gates.
+**Decision state:** Proposed design baseline only; ADR-014 and project charter still need named approval. Business scope, expected benefits and acceptance obligations remain unchanged.
+
+## 16. Charter approval and sign-off
+
+| Approval role | Named approver | Decision / evidence required | Status / date |
+|---|---|---|---|
+| Executive sponsor / CTO delegate | TBD | Program capstone authority, phase boundaries, and budget assumptions | Pending / — |
+| Product Owner / AI PM/TPM | TBD | PRD outcomes, business acceptance and deliverable baseline | Pending / — |
+| Enterprise Architect / AI lead | TBD | ADR-014 and n8n technical feasibility criteria | Pending / — |
+| Data Owner / QA Evaluation Lead | TBD | Source truth, T1–T12, MIRA-001 assertions | Pending / — |
+| Security / Privacy Lead | TBD | Data policy and independent Phase B release sign-off | Pending / — |
+| Platform / SRE Owner | TBD | Hosting, backups, on-call and Phase B operations | Pending / — |
+
+**Proposed authorization now:** Continue controlled Phase A discovery and capstone implementation with approved assignment/synthetic data. **No production release, real-client data ingestion, autonomous external stakeholder publication, 10-user pilot or funding commitment** is granted by a proposed charter or ADR alone.
+
+**Phase B authorization:** Requires separate written sponsor approval of PRD v2.0 / CR-PROD-001, approved budget, legal/security/privacy/operations plans, named owners, verified P01–P15 and final go/no-go. Approval of Phase A is not approval of production.
+
+## 17. Document control, preserved baselines and revision history
+
+**Current document:** `docs/Project_Charter.md` **v1.1**. It aligns to:
+
+- `docs/PRD.md` – business requirement **PRD v1.1** baseline; record an implementation addendum for Langflow-specific wording without deleting existing FRs. **PRD v2.0** still requires authorization for proposed production additions.
+- `docs/Technical_Design_Document.md` – **v2.1**, n8n-only architecture, ADR-014, implementation gates G1–G10 and production acceptance P01–P15.
+- `docs/Architecture.md` – **v2.1**, revised Mermaid architecture, source processing, monitoring, approval and evaluation diagrams.
+- `n8n/` – actual credential-reviewed n8n workflow exports **once built**, not to be represented as already created.
+- `testing/` – task-board validation evidence, T1–T12 evaluation ledger, release gate record and P01–P15 proof **when available**.
+- `docs/adr/` or a clearly linked section in the TDD – **ADR-014** architecture trade-off and future reassessment conditions.
+
+| Version | Date | Change | Status |
+|---|---|---|---|
+| **v1.0** | 2026-10-25 | Initial two-phase charter, PRD v1.1 business goals, Langflow-first capability mapping, human approval and production gates | Historical baseline |
+| **v1.1** | 2026-10-25 | Rebased implementation to n8n-only; added ADR-014 comparison, n8n deliverables, aligned G1–G10, normalized evaluation requirements, cost/API considerations and revised risks; **did not remove T1–T12 or production approval gates** | **Proposed, sign-off pending** |
+
+**Integrity rule:** Keep prior signed revisions and GitHub history. New version baselines are proposals until approved; document status cannot be inferred from a download or commit.
