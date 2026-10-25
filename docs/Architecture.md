@@ -1,511 +1,231 @@
 # Mira – Technical Design Document (TDD)
 
-**Version:** 1.1  
-**Status:** Proposed – Conditional Architecture Approval  
+**Version:** 1.2  
+**Status:** Conditional Architecture Approval – Feasibility Gates Pending  
 **Date:** October 25, 2026  
 **Project:** Mira – AI-Powered Project Intelligence Assistant  
-**Client:** ABCDE Ltd.  
-**Delivery Organization:** Nexora Pvt. Ltd.  
-**Document Owner:** AI PM / TPM  
-**Review Authority:** Enterprise Technical Architect / CTO  
-**Reference:** Mira PRD v1.1  
-**Implementation Approach:** No-Code First  
-**Primary Technology:** Langflow, OpenAI GPT-4o-mini, LangWatch, GitHub
+**Implementation Partner:** Nexora Pvt. Ltd.  
+**Client Project:** ABCDE Ltd. AI Adoption Project  
+**Document Owner:** AI PM/TPM  
+**Architecture Authority:** Enterprise Technical Architect / CTO  
+**Requirements Baseline:** Mira PRD v1.1  
+**Delivery Approach:** No-Code First  
+**Technology Stack:** Langflow, OpenAI GPT-4o-mini, LangWatch, GitHub
 
 ---
 
-# 1. Executive Architecture Summary
+# 1. Executive Technical Summary
 
-Mira is a multi-agent AI project intelligence assistant intended to improve the efficiency and consistency of project management activities at Nexora.
+Mira is a multi-agent AI project intelligence solution designed to automate and standardize project management activities for Nexora's PMs and TPMs.
 
-The system will support planning, risk assessment, status reporting, milestone tracking, and stakeholder updates for ABCDE Ltd.'s six-month AI Adoption Project.
+The solution uses Langflow for orchestration and specialist-agent execution, OpenAI GPT-4o-mini for language understanding and report generation, LangWatch for AI evaluation and observability, and GitHub for version management and engineering governance.
 
-The solution will use a Router/Dispatcher architecture built primarily with Langflow visual components.
+Four business capabilities are implemented through specialized flows:
 
-The architecture consists of:
+1. Project Planner.
+2. Risk Assessor.
+3. Status Reporter.
+4. Milestone Tracker.
 
-1. Presentation and interaction layer.
-2. Request validation and orchestration.
-3. Four specialist AI agent services.
-4. Shared project-data services.
-5. Deterministic processing and validation controls.
-6. AI inference through OpenAI.
-7. Observability and evaluation.
-8. GitHub-based version management.
+A central Orchestrator dispatches user requests to the appropriate capability.
 
-**Fundamental design principle:** AI will generate narrative analysis and recommendations, while factual calculations and source validation will rely on deterministic processing.
+Stakeholder communications are produced through a controlled output mode of the Status Reporter.
 
-The MVP is a controlled proof of concept, not a production-ready enterprise deployment.
+The solution separates generative AI processing from deterministic data calculations. All factual reporting must be grounded in approved project records.
 
-# 2. Scope and PRD Alignment
+**Architecture recommendation:** Approve the logical design for a proof of concept, conditional on confirming no-code data processing, model orchestration, source validation, and LangWatch compatibility.
 
-## 2.1 In Scope
+# 2. Business Context and Architectural Drivers
 
-- Project description and CSV ingestion.
-- Request classification and specialist routing.
-- Project plan generation.
-- Risk assessment.
-- Sprint and project status reporting.
-- Milestone and blocked-task tracking.
-- Sprint-specific stakeholder update generation.
-- Structured outputs.
-- Missing-data and error handling.
-- Observability and evaluation.
-- GitHub workflow versioning.
-- Human review before external distribution.
+## 2.1 Business Context
 
-## 2.2 Out of Scope
+Nexora manages ABCDE Ltd.'s six-month AI Adoption Project, covering demand forecasting, route optimization, inventory management and customer support.
 
-- Automated Jira/Trello modification.
+Nexora faces limited project management capacity, inconsistent risk assessments, time-consuming project plans and weekly reports, and reactive milestone management.
+
+## 2.2 Business Drivers
+
+| Driver | Current challenge | Required technical capability |
+|---|---|---|
+| BD-01 | Plans require 3–4 hours | Grounded automated project planning |
+| BD-02 | Risks assessed inconsistently | Standardized risk evaluation |
+| BD-03 | Weekly reports require 1–2 hours | Deterministic task summarization and AI narrative |
+| BD-04 | Milestones discovered late | Blocker and deadline evaluation |
+| BD-05 | Governance formats vary | Versioned templates and response schemas |
+| BD-06 | Few PMs manage multiple projects | Request routing and project-aware data selection |
+
+## 2.3 Measurable Architectural Outcomes
+
+Proposed targets:
+
+- All twelve baseline scenarios executed.
+- Twelve passing scenarios after remediation.
+- Exact reconciliation of valid task counts.
+- Zero unsupported source-fact claims in accepted baseline outputs.
+- Correct identification of documented blocked tasks.
+- Standardized project-plan, risk and status outputs.
+- Execution traces and measured LLM usage.
+- Exportable, reproducible Langflow workflows.
+
+The solution must also measure actual PM review effort before claiming business time savings.
+
+# 3. Scope and Constraints
+
+## 3.1 MVP Scope
+
+- One fully validated ABCDE project dataset.
+- Project-aware request interface.
+- Four specialist workflows.
+- One Orchestrator.
+- Static TXT and CSV ingestion.
+- Exact task calculations.
+- On-demand milestone risk identification.
+- Grounded reporting.
+- Stakeholder email drafting.
+- Evaluation and observability.
+- Human review.
+- GitHub configuration versioning.
+
+## 3.2 Architectural Extensibility
+
+The design shall use a logical `project_id` to support future multiple-project operation.
+
+However, automatic onboarding, cross-project access controls and enterprise multi-tenancy are not included in the MVP.
+
+## 3.3 Exclusions
+
 - Production SSO.
-- Autonomous stakeholder communication.
+- Enterprise multi-tenancy.
+- Autonomous modification of business systems.
+- Scheduled production alert delivery.
+- Autonomous emails.
 - Fine-tuning.
-- Enterprise-scale high availability.
-- Multi-tenant access management.
-- Live production logistics integration.
-- Complex RAG infrastructure.
+- High-availability infrastructure.
+- Complex RAG and vector databases.
+- Live ERP, forecasting or logistics integration.
 
-## 2.3 Requirements Coverage
+## 3.4 Primary Constraint
 
-| PRD requirements | Architecture component |
+No-code implementation is the preferred delivery method.
+
+Custom Python or JavaScript is not approved for the initial implementation.
+
+When native components do not satisfy an essential deterministic requirement, an additional no-code solution may be proposed through architecture change control.
+
+# 4. Target Architecture
+
+## 4.1 Architecture Style
+
+Router/Dispatcher multi-agent architecture with shared data and validation services.
+
+### Logical Layers
+
+**Layer 1 – Experience**
+
+Langflow Playground receives requests and displays generated artifacts.
+
+**Layer 2 – Request Validation**
+
+Checks supported intent, project context, sprint/date parameters, and essential input availability.
+
+**Layer 3 – Orchestration**
+
+Mira Orchestrator chooses the relevant specialist flow.
+
+**Layer 4 – Specialist Agents**
+
+Planner, Risk Assessor, Status Reporter, Milestone Tracker.
+
+**Layer 5 – Project Data Services**
+
+Approved project source files, filtering, aggregation, date calculations and provenance.
+
+**Layer 6 – Response Assurance**
+
+Structure validation, source checking, insufficient-data handling, and review controls.
+
+**Layer 7 – Observability**
+
+LangWatch traces, evaluation metrics, execution measurements.
+
+**Layer 8 – Engineering Governance**
+
+GitHub documentation, flow JSON exports, test evidence, change management.
+
+## 4.2 Primary Design Principles
+
+- Source records are authoritative for factual project data.
+- Agents must not invent approved commitments.
+- Mathematical and temporal calculations must be deterministic.
+- Project context must be explicit.
+- Cross-project data mixing is prohibited.
+- The Router does not independently produce project-status facts.
+- Each specialist has a documented contract.
+- Errors and missing data are first-class outputs.
+- External distribution requires human approval.
+- Observability evidence must be reproducible.
+
+# 5. Langflow Physical Architecture
+
+## 5.1 Proposed Flows
+
+| Flow | Purpose |
 |---|---|
-| FR-001 | Project Data Ingestion |
-| FR-002 | Mira Orchestrator |
-| FR-003–FR-004 | Planner Agent |
-| FR-005–FR-006 | Risk Assessor |
-| FR-007–FR-008 | Status Reporter and aggregation services |
-| FR-009–FR-010 | Milestone Tracker and date evaluation |
-| FR-011 | Status Reporter – Stakeholder Mode |
-| FR-012–FR-013 | Validation and error-handling services |
-| FR-014–FR-015 | LangWatch and evaluation workflow |
-| FR-016 | Structured response formatter |
-| FR-017 | Human review procedure |
-| FR-018 | Deferred integration capability |
+| Mira_00_Orchestrator | User request classification and dispatch |
+| Mira_01_Planner | Structured project plan |
+| Mira_02_Risk_Assessor | Project risk analysis |
+| Mira_03_Status_Reporter | Weekly reports and stakeholder updates |
+| Mira_04_Milestone_Tracker | Blocked and deadline-based analysis |
 
-# 3. Architecture Principles
+The five flows will be developed and tested independently before orchestration integration.
 
-| Principle | Technical policy |
-|---|---|
-| No-code first | Use visual Langflow components where supported |
-| Data integrity | Never use an LLM as the source of exact task counts |
-| Source grounding | Each factual output must correspond to approved source data |
-| Separation of concerns | Each specialist independently owns one capability |
-| Modular design | Specialist flows are reusable through Run Flow |
-| Clear contracts | Requests and outputs follow standard field definitions |
-| Secure configuration | Secrets excluded from GitHub and workflow exports |
-| Human accountability | Project commitments require PM/TPM approval |
-| Observability | Executions and quality evidence are recorded |
-| Reproducibility | Tested flow versions are stored in GitHub |
+## 5.2 Orchestrator Components
 
-# 4. Architecture Style and Orchestration
-
-## 4.1 Architecture Pattern
-
-**Selected pattern:** Router/Dispatcher with independent specialist workflows.
-
-The Orchestrator classifies the user's business intent and invokes the appropriate specialist.
-
-Supported primary intents:
-
-- PLAN
-- RISK
-- STATUS
-- TRACKING
-- CLARIFICATION
-
-Stakeholder updates are handled as a STATUS output mode.
-
-## 4.2 Routing Design
-
-The MVP will use a Langflow Agent with four specialist Run Flow tools.
-
-Each tool must have:
-
-- A unique name.
-- A clear capability description.
-- Defined inputs.
-- Defined outputs.
-- Documented error behavior.
-
-Tool selection is AI-based and must be evaluated.
-
-If routing quality is insufficient, explicit intent classification and supported conditional routing will replace unrestricted tool selection.
-
-## 4.3 Multi-Intent Requests
-
-If a user requests multiple reports, the initial MVP may:
-
-1. Execute supported specialist tools sequentially when available.
-2. Combine their outputs only when source references remain intact.
-3. Request clarification when the requested combination is ambiguous.
-
-Multi-intent support is not a substitute for successful single-agent acceptance tests.
-
-# 5. Logical System Components
-
-## 5.1 User Interaction Layer
-
-**Technology:** Langflow Playground.
-
-Responsibilities:
-
-- Capture user requests.
-- Display agent responses.
-- Support interactive testing.
-- Display missing-information questions.
-
-The Playground is sufficient for the capstone MVP. A custom web frontend is not required.
-
-## 5.2 Request Validation Layer
-
-Required logical inputs:
-
-- User message.
-- Project identifier.
-- Requested capability, if known.
-- Sprint or reporting-period filter, when applicable.
-- As-of date for temporal analysis.
-
-The system must not assume a default sprint when the requested sprint is essential to the answer.
-
-For date-based requests, the effective evaluation date must be explicit, correctly supplied by the runtime, or recorded in the test fixture.
-
-## 5.3 Mira Orchestrator
-
-**Flow:** `Mira_00_Orchestrator`
-
-Proposed components:
+Proposed visual components:
 
 - Chat Input.
-- Agent configured with GPT-4o-mini.
+- Agent.
+- OpenAI model configuration.
 - Four Run Flow components in Tool Mode.
 - Chat Output.
 
-Responsibilities:
+### Routing Policy
 
-- Identify user intent.
-- Select specialist flow.
-- Pass user request context.
-- Receive specialist output.
-- Return the result without introducing unsupported facts.
-
-The Orchestrator must not independently invent project status or task information.
-
-## 5.4 Shared Project Data Layer
-
-The project data layer is a logical shared service, not necessarily a separately deployed application.
-
-It provides:
-
-- Approved project documents.
-- Structured task records.
-- Structured risk records.
-- Structured timeline records.
-- Record filtering.
-- Source identifiers.
-- Data quality checks.
-- Dataset version information.
-
-Specialist flows may directly consume approved input files through their own Read File components in the initial MVP.
-
-A separate shared-data subflow is optional if reusable preprocessing is demonstrated to be beneficial.
-
-## 5.5 Deterministic Processing Layer
-
-This layer handles operations that must be exact:
-
-- Filtering tasks by sprint.
-- Grouping tasks by status.
-- Counting valid records.
-- Identifying explicitly blocked tasks.
-- Comparing valid due dates with the evaluation date.
-- Selecting milestones within a date window.
-
-These operations must not be delegated to an LLM as unverified arithmetic or logical inference.
-
-Use built-in structured-data components where feasible.
-
-If essential deterministic behavior cannot be achieved reliably within the no-code component set, activate the documented architecture decision gate before adding another processing platform.
-
-## 5.6 Response Validation Layer
-
-Response validation has two levels.
-
-**Structural validation:**
-
-- Required response fields exist.
-- Correct output types are used.
-- Status values are valid.
-- The response follows the selected output contract.
-
-**Factual validation:**
-
-- Task IDs exist in the supplied dataset.
-- Reported task counts match deterministic totals.
-- Referenced milestones exist in the timeline.
-- Existing risk identifiers match the risk register.
-- Unsupported claims are rejected or labeled as recommendations.
-
-A structured-output component alone does not satisfy factual validation.
-
-# 6. Specialist Agent Design
-
-## 6.1 Planner Agent
-
-**Flow:** `Mira_01_Planner`
-
-**Business capability:** Project plan generation.
-
-Inputs:
-
-- User request.
-- Approved project description.
-- Approved timeline.
-
-Processing:
-
-1. Load project description.
-2. Load approved timeline.
-3. Check for essential planning information.
-4. Generate structured plan.
-5. Validate documented phases and milestone references.
-6. Return plan or missing-information response.
-
-Output fields:
-
-- project_name
-- objectives
-- scope
-- phases
-- activities
-- deliverables
-- milestones
-- dependencies
-- assumptions
-- missing_information
-- source_references
-
-**Rules:**
-
-- The six-month duration must be represented when using the ABCDE dataset.
-- Existing timeline phases must not be silently replaced.
-- Proposed activities must be distinguishable from approved activities.
-- Vague requests must produce clarification.
-
-**Baseline tests:** T1, T2, T9.
-
-## 6.2 Risk Assessor
-
-**Flow:** `Mira_02_Risk_Assessor`
-
-Inputs:
-
-- Project description.
-- Approved risk register.
-- Risk assessment request.
-
-Processing:
-
-1. Read relevant risk records.
-2. Filter by project.
-3. Identify requested categories or priorities.
-4. Generate risk narrative and recommendations.
-5. Verify existing risk identifiers.
-6. Return structured assessment.
-
-Output fields:
-
-- risk_id
-- category
-- description
-- impact
-- mitigation
-- priority
-- ranking_basis
-- recommendation
-- source_reference
-
-Risk prioritization must follow a documented method.
-
-If the provided register does not contain sufficient scoring fields, the system must disclose that ranking is provisional or request a prioritization basis.
-
-**Baseline tests:** T3, T4, T7.
-
-## 6.3 Status Reporter
-
-**Flow:** `Mira_03_Status_Reporter`
-
-Inputs:
-
-- Task-board CSV.
-- Sprint or reporting period.
-- User request.
-- Optional audience.
-
-Processing:
-
-1. Load valid task records.
-2. Apply requested sprint filter.
-3. Calculate status counts.
-4. Identify blockers and relevant upcoming work.
-5. Prepare grounded report.
-6. Validate totals and task names.
-7. Return report.
-
-Output fields:
-
-- project_id
-- reporting_period
-- total_tasks
-- done_count
-- in_progress_count
-- todo_count
-- blocked_count
-- tasks_by_status
-- blockers
-- upcoming_work
-- overall_health
-- health_rationale
-- source_references
-
-**Acceptance invariants:**
-
-- Counts must reflect the selected task population.
-- Total must reconcile to valid records.
-- Sprint reports must not include unrelated sprints.
-- Overall health cannot be stated as a confirmed fact without supporting criteria.
-- Missing task data results in INSUFFICIENT_DATA.
-
-### Stakeholder Communication Mode
-
-When the user requests a stakeholder email, the Status Reporter shall produce a draft using the same validated reporting dataset.
-
-Email generation must not cause automatic sending.
-
-**Baseline tests:** T5, T6, T10, T12.
-
-## 6.4 Milestone Tracker
-
-**Flow:** `Mira_04_Milestone_Tracker`
-
-Inputs:
-
-- Approved timeline.
-- Validated task board.
-- As-of date.
-- Requested time window.
-
-Processing:
-
-1. Load timeline and task records.
-2. Identify explicitly blocked tasks.
-3. Identify overdue incomplete tasks.
-4. Select upcoming milestones.
-5. Match relationships only when documented.
-6. Explain risk indicators and recommended actions.
-7. Return evidence-backed alerts.
-
-Output fields:
-
-- task_id
-- task_name
-- status
-- due_date
-- milestone_id
-- milestone_name
-- alert_type
-- alert_reason
-- recommended_action
-- source_references
-
-**Rules:**
-
-- BLOCKED means explicitly blocked in source data.
-- OVERDUE means incomplete with a due date before the as-of date.
-- UPCOMING means the milestone falls within the requested date interval.
-- AT_RISK requires supporting schedule or dependency evidence.
-- Unknown dependencies must not be invented.
-
-**Baseline tests:** T8, T11.
-
-# 7. Data Architecture
-
-## 7.1 Source Datasets
-
-| Source | Business authority |
+| User intent | Required specialist |
 |---|---|
-| project_description.txt | Project goals, approved scope and approach |
-| project_timeline.csv | Approved phases and milestone dates |
-| project_risks.csv | Registered risks and mitigations |
-| sample_task_board.csv | Task statuses, assignments, sprints and due dates |
-| eval_mira_inputs.txt | Evaluation requests |
+| Create plan | Planner |
+| Assess project risks | Risk Assessor |
+| Generate status | Status Reporter |
+| Identify blockers and milestone concerns | Milestone Tracker |
+| Generate stakeholder email | Status Reporter – communication mode |
+| Missing essential context | Clarification response |
 
-## 7.2 Expected Data Volumes
+The Orchestrator's tool descriptions must clearly define their intended use.
 
-The capstone describes:
+LLM-based tool selection is probabilistic. Therefore, routing evaluation is mandatory.
 
-- One project description.
-- Eight timeline phases.
-- Ten registered risks.
-- Twenty-five task-board records.
-- Twelve baseline test cases.
+### Routing Failure Policy
 
-These are expected test-data characteristics. Actual records and field structures must be verified.
+If the system cannot determine the correct specialist:
 
-## 7.3 Canonical Entities
+- Do not select an unrelated tool merely to produce an answer.
+- Ask a concise clarifying question.
+- Record the routing failure in evaluation results.
 
-**Project:** project_id, name, scope, objectives, duration, source.
+## 5.3 Inter-Flow Interface Contract
 
-**Task:** task_id, task_name, sprint, status, assignee, due_date, source.
+Each specialist receives the relevant subset of:
 
-**Risk:** risk_id, category, description, impact, mitigation, priority_if_available, source.
+- request_id
+- project_id
+- user_message
+- requested_sprint
+- as_of_date
+- reporting_start
+- reporting_end
+- output_mode
 
-**Milestone:** milestone_id_if_available, name, phase, due_date, documented_dependency_if_available, source.
-
-## 7.4 Data Quality Rules
-
-- Reject files that cannot be read.
-- Identify missing required columns.
-- Check duplicate task identifiers.
-- Normalize recognized status labels without changing their meaning.
-- Validate dates before comparisons.
-- Preserve the original source record ID.
-- Prevent mixing records from different datasets without explicit selection.
-- Document the dataset version used for each test run.
-
-## 7.5 Source Versioning
-
-For the capstone, the source dataset version can be represented by a GitHub commit reference or approved dataset version label.
-
-Each formal evaluation run shall identify the dataset version used.
-
-GitHub versioning does not automatically update files already uploaded to Langflow. File changes must be reloaded and verified.
-
-## 7.6 Retrieval Strategy
-
-The MVP shall use direct file loading and structured filtering.
-
-RAG/vector search is excluded initially because the datasets are small and the core evaluation requires exact record-level behavior.
-
-# 8. Interface Contracts
-
-## 8.1 Request Contract
-
-Logical request fields:
-
-- request_id: string
-- project_id: string
-- user_message: string
-- intent: optional string
-- sprint: optional string
-- as_of_date: optional ISO-format date
-- reporting_window: optional date range
-
-The implementation must identify which fields are actually supported by the selected Langflow component connections.
-
-## 8.2 Response Contract
-
-Logical response fields:
+Each specialist returns:
 
 - request_id
 - project_id
@@ -513,11 +233,325 @@ Logical response fields:
 - result_status
 - response_data
 - source_references
-- missing_information
 - warnings
-- execution_metadata
+- missing_information
 
-## 8.3 Status Codes
+The exact wiring and supported Langflow data types must be verified during component design.
+
+## 5.4 Specialist Agent Boundaries
+
+Planner is responsible for planning only.
+
+Risk Assessor is responsible for registered risks and associated analysis.
+
+Status Reporter is responsible for task aggregation and narrative reporting.
+
+Milestone Tracker is responsible for task and milestone deadline analysis.
+
+No specialist may silently redefine another agent's authoritative results.
+
+# 6. Project Data Architecture
+
+## 6.1 Approved Source Files
+
+| Dataset | Authority |
+|---|---|
+| project_description.txt | Objectives, scope and project approach |
+| project_timeline.csv | Approved phases and milestones |
+| project_risks.csv | Registered risks and mitigations |
+| sample_task_board.csv | Tasks, assignees, sprints, statuses and due dates |
+| eval_mira_inputs.txt | Evaluation inputs |
+
+The actual file schemas remain subject to inspection.
+
+## 6.2 Canonical Data Entities
+
+### Project
+project_id, project_name, objectives, scope, duration, source_version.
+
+### Task
+task_id, project_id, task_name, sprint, status, assignee, due_date, source_reference.
+
+### Risk
+risk_id, project_id, category, description, impact, mitigation, priority_if_available, source_reference.
+
+### Milestone
+milestone_id_if_available, project_id, name, phase, due_date, dependency_if_available, source_reference.
+
+Logical canonical fields do not imply their physical existence in the provided CSV files.
+
+## 6.3 Data Isolation
+
+For the MVP, only the approved ABCDE dataset is loaded.
+
+For future multi-project support:
+
+- Project ID becomes mandatory.
+- Retrieval must be scoped to that project.
+- Task and risk identifiers must be interpreted within project context.
+- Requests without a clear project reference must not combine data.
+
+## 6.4 Ingestion Strategy
+
+Preferred approach:
+
+Langflow Read File → structured data conversion → filtering or deterministic processing → relevant specialist.
+
+Read File should preserve source content and record structure whenever possible.
+
+CSV data shall not be reduced to an unstructured narrative before necessary calculations are completed.
+
+## 6.5 Data Versioning
+
+Formal evaluations must record:
+
+- Dataset version or GitHub commit reference.
+- Workflow version.
+- Test execution date.
+- Model identity.
+- Prompt version, where maintained.
+
+A GitHub update does not automatically refresh Langflow's previously loaded data.
+
+The test operator must verify that the correct dataset is loaded.
+
+## 6.6 Data Quality Rules
+
+The following are required:
+
+- Missing file detection.
+- Required-column checks.
+- Valid record counting.
+- Duplicate identifier identification.
+- Recognized status validation.
+- Date-format validation.
+- Sprint filtering.
+- Missing-value reporting.
+- Source version recording.
+
+# 7. Deterministic Data Processing
+
+## 7.1 Design Requirement
+
+The application must use deterministic operations for:
+
+- Task counts.
+- Status grouping.
+- Sprint filters.
+- Completion percentages.
+- Due-date comparisons.
+- Upcoming milestone selection.
+- Explicit blocked-task detection.
+
+LLM responses cannot be the sole validation mechanism.
+
+## 7.2 Preferred Processing Option
+
+Langflow's native structured-data operations will be evaluated first.
+
+The feasibility demonstration must prove:
+
+1. Read twenty-five task records.
+2. Return the expected project-wide status counts.
+3. Select Sprint 3 only.
+4. Identify task T024 as blocked.
+5. Evaluate a known overdue date correctly.
+6. Select milestones within an explicit fourteen-day window.
+
+## 7.3 Conditional No-Code Alternative
+
+If native Langflow processing cannot meet the requirements, a spreadsheet-based calculation layer may be introduced.
+
+The alternative must:
+
+- Remain no-code.
+- Preserve original task IDs.
+- Produce deterministic results.
+- Be repeatable with the fixed test dataset.
+- Support an approved import or integration into Langflow.
+- Avoid adding unnecessary autonomous actions.
+
+The selected mechanism must be recorded in an updated architecture decision record.
+
+## 7.4 Task Count Rules
+
+The status taxonomy for the baseline dataset is:
+
+- Done
+- In Progress
+- To Do
+- Blocked
+
+For the complete dataset:
+
+Total = Done + In Progress + To Do + Blocked
+
+The baseline assignment expects:
+
+- Done = 3.
+- In Progress = 3.
+- Blocked = 1.
+- To Do = 18.
+- Total = 25.
+
+These values must be verified against the actual CSV.
+
+Unknown statuses must not silently become To Do.
+
+## 7.5 Date Evaluation Rules
+
+The as-of date must be explicit and consistently interpreted.
+
+- BLOCKED: source status is explicitly blocked.
+- OVERDUE: incomplete task due date is before as-of date.
+- UPCOMING: milestone due date is within the requested future interval.
+- AT_RISK: source evidence supports a potential impact to delivery.
+
+A blocked task may be flagged for attention even when milestone impact cannot be established.
+
+Time-window boundary semantics must be fixed in the test specifications.
+
+For an "upcoming two weeks" query, the default proposal is an inclusive interval from the as-of date through fourteen calendar days later.
+
+# 8. Specialist Agent Designs
+
+## 8.1 Planner
+
+**Flow:** Mira_01_Planner.
+
+### Inputs
+User request, approved project description and project timeline.
+
+### Responsibilities
+- Check essential information.
+- Produce structured phases and activities.
+- Preserve approved milestones.
+- Identify documented dependencies.
+- Separate source facts from proposed planning recommendations.
+- Request clarification for vague project requests.
+
+### Output Structure
+Project, objectives, scope, phases, activities, deliverables, milestones, timeline, assumptions, missing information and source references.
+
+### Acceptance Tests
+T1, T2, T9.
+
+### Failure Conditions
+Missing scope, insufficient input, contradictory timeline or unsupported requested detail.
+
+## 8.2 Risk Assessor
+
+**Flow:** Mira_02_Risk_Assessor.
+
+### Inputs
+Project description, risk register and request.
+
+### Responsibilities
+- Categorize registered risks.
+- Explain documented impact.
+- Present mitigation strategies.
+- Select requested existing risks.
+- Explain the prioritization basis.
+- Distinguish registered from proposed risks.
+
+### Ranking Policy
+
+Use existing source priority fields where available.
+
+If no authoritative priority exists, disclose the ranking limitation and use a documented, provisional rule only where appropriate.
+
+### Acceptance Tests
+T3, T4, T7.
+
+## 8.3 Status Reporter
+
+**Flow:** Mira_03_Status_Reporter.
+
+### Inputs
+Task board, requested sprint, reporting period, output mode.
+
+### Responsibilities
+- Filter source tasks.
+- Calculate exact counts.
+- Preserve task names and IDs.
+- Identify explicitly blocked tasks.
+- Generate structured status narrative.
+- Generate stakeholder update drafts.
+
+### Output Modes
+
+**STATUS_REPORT:** Task status, blockers, upcoming work, overall health where supported.
+
+**STAKEHOLDER_EMAIL:** Professional draft using only the selected sprint or reporting period.
+
+### Acceptance Tests
+T5, T6, T10, T12.
+
+### Health Evaluation
+
+Overall project health must not be invented.
+
+A provisional health rule may be proposed later, but must define thresholds and required evidence.
+
+When insufficient information exists, return health as unknown or not assessed.
+
+## 8.4 Milestone Tracker
+
+**Flow:** Mira_04_Milestone_Tracker.
+
+### Inputs
+Timeline, task board, as-of date and date range.
+
+### Responsibilities
+- Find explicitly blocked tasks.
+- Identify overdue incomplete tasks.
+- Select upcoming milestones.
+- Evaluate known dependencies.
+- Produce evidence-backed recommendations.
+
+### Output
+Task/milestone identifiers, status, due dates, alert type, reason, recommended action and source references.
+
+### Acceptance Tests
+T8, T11.
+
+### Alert Scope
+
+MVP alerts are on-demand responses.
+
+Scheduled notifications are excluded from the MVP unless separately approved and implemented.
+
+# 9. Grounding and Response Assurance
+
+## 9.1 Provenance Classes
+
+Each generated fact should be categorized internally as:
+
+1. Source-record fact.
+2. Deterministically derived value.
+3. Proposed AI recommendation.
+4. Missing or unsupported information.
+
+## 9.2 Grounding Controls
+
+- Source task IDs must exist.
+- Source milestones must exist.
+- Reported counts must match deterministic results.
+- Existing risk identifiers must come from the risk register.
+- Proposed mitigation or actions must be labeled as recommendations.
+- Missing inputs must not be silently filled.
+
+## 9.3 Validation Implementation
+
+Structural validation should use supported structured-output schemas.
+
+Factual validation requires comparisons against approved source data.
+
+When automated factual validation is not available through the selected no-code components, the MVP shall use explicit evaluation assertions and documented PM review.
+
+Such manual controls must be disclosed; they must not be represented as automatically enforced runtime safeguards.
+
+## 9.4 Standard Response Statuses
 
 - SUCCESS
 - INSUFFICIENT_DATA
@@ -525,340 +559,414 @@ Logical response fields:
 - UNSUPPORTED_REQUEST
 - SERVICE_ERROR
 
-## 8.4 Contract Compatibility
+A result marked SUCCESS must meet the applicable validation criteria.
 
-The Orchestrator must be able to interpret each specialist's response.
+# 10. Standardized Governance Outputs
 
-Specialist flows must not use inconsistent names or incompatible result structures for shared fields.
+## 10.1 Project Plan Template
 
-Changes to response contracts require a documented version update and regression testing.
+Required sections:
 
-# 9. Langflow Physical Implementation Mapping
+- Project overview.
+- Scope and objectives.
+- Phases and activities.
+- Deliverables.
+- Milestones.
+- Timeline.
+- Dependencies where documented.
+- Assumptions.
+- Open questions.
+- Source references.
 
-| Logical capability | Proposed visual component | Verification requirement |
-|---|---|---|
-| User interaction | Chat Input / Chat Output | Playground execution |
-| Model inference | Agent / OpenAI | Valid model response |
-| Subflow invocation | Run Flow, Tool Mode | Tool successfully invokes target flow |
-| Text ingestion | Read File | Project description parsed |
-| CSV ingestion | Read File, structured output | CSV rows accessible |
-| Filtering | Data Operations | Sprint-specific records selected |
-| Aggregation | Native data operations if supported | Exact counts demonstrated |
-| Date calculations | Compatible visual processing component | Correct time-window results |
-| Output shaping | Prompt Template / Structured Output | Required fields validated |
-| Observability | LangWatch-supported integration | Real execution trace verified |
-| Repository versioning | Langflow export + GitHub browser upload | Re-import successful |
+## 10.2 Risk Matrix Template
 
-**Architecture restriction:** Components that have not been proven capable of a required operation are provisional selections, not implemented controls.
+Required columns:
 
-# 10. Security and Privacy Architecture
+- Risk ID.
+- Category.
+- Risk description.
+- Impact.
+- Mitigation.
+- Priority or ranking explanation.
+- Source.
 
-## 10.1 Trust Boundaries
+## 10.3 Weekly Status Template
 
-The solution crosses these boundaries:
+Required sections:
 
-1. User-to-Langflow interaction.
-2. Langflow-to-OpenAI API processing.
-3. Langflow-to-observability processing.
-4. Developer-to-GitHub artifact publishing.
+- Project and reporting period.
+- Task counts.
+- Completed work.
+- In-progress work.
+- To Do work.
+- Blocked work.
+- Upcoming milestones.
+- Health assessment with evidence.
+- Required PM actions.
 
-## 10.2 Credential Controls
+## 10.4 Stakeholder Update Template
 
-- API keys must be stored in supported credential settings.
-- Secrets must not be embedded in prompts.
-- Secrets must not appear in GitHub commits.
-- Exported flows must be reviewed before upload.
-- Unnecessary external integrations must remain disabled.
+Required sections:
 
-## 10.3 Data Handling
+- Subject.
+- Reporting period.
+- Progress summary.
+- Key achievements.
+- Issues and dependencies.
+- Next steps.
+- Decisions requested.
 
-- Use approved capstone data.
-- Do not publish sensitive task descriptions or client information without authorization.
-- Review trace payloads before enabling external observability on real company data.
-- Avoid storing private content in public repositories.
-- Document the distinction between synthetic test data and real organizational information.
+The email is a draft and must not be automatically sent.
 
-## 10.4 Human Approval
+# 11. Security and Privacy
 
-The MVP uses a manual approval process:
+## 11.1 Trust Boundaries
 
-1. Generate report.
-2. PM/TPM reviews accuracy.
-3. Correct unsupported or incomplete content.
-4. Approve finalized artifact.
-5. Share externally using the organization's approved communication process.
+Data crosses these boundaries:
 
-A built-in automated approval workflow is not required for the MVP.
+1. User to Langflow.
+2. Langflow to OpenAI.
+3. Langflow to LangWatch.
+4. Development workstation to GitHub.
 
-# 11. Observability and Evaluation
+## 11.2 Required Controls
 
-## 11.1 Observability Platform
+- Approved data only.
+- Private development repository where appropriate.
+- Credentials stored in supported secure settings.
+- No credentials in exported JSON.
+- Secret review before committing changes.
+- Minimum necessary third-party data exposure.
+- No autonomous stakeholder distribution.
+- Controlled access to project files.
 
-LangWatch is the preferred observability solution.
+## 11.3 Prompt-Injection Considerations
 
-Integration compatibility shall be verified with the selected Langflow version and runtime before formal testing.
+Project documents and user-supplied files are data, not trusted system instructions.
 
-## 11.2 Trace Requirements
+Agents must not follow instructions embedded in source files that attempt to override the configured system behavior, reveal secrets or perform unauthorized actions.
 
-Capture when technically available:
+Tool permissions must remain limited to the capabilities required for the MVP.
+
+## 11.4 Production Boundary
+
+The MVP does not provide production-grade authorization or multi-tenant security.
+
+Real client deployment requires additional architecture and security review.
+
+# 12. Human Review and Approval
+
+For the MVP, approval is manual.
+
+1. Generate draft artifact.
+2. Review source grounding and completeness.
+3. Correct errors.
+4. Mark the artifact approved.
+5. Share through approved organizational channels.
+
+If a Langflow human-approval tool is introduced, approval must occur in a supported parent-flow location rather than an unsupported nested Run Flow pause.
+
+# 13. Observability Architecture
+
+## 13.1 Selected Platform
+
+LangWatch.
+
+Integration is subject to compatibility validation with the selected Langflow runtime.
+
+## 13.2 Trace Requirements
+
+Capture where supported:
 
 - Request ID.
-- Invoked specialist.
-- Model identifier.
-- Start/end timestamps.
-- Latency.
-- Token usage.
+- Agent/flow name.
+- Model and prompt version.
+- Execution time.
+- Input and output usage.
 - Estimated cost.
-- Failure information.
-- Evaluation outcome.
-- Workflow version.
+- Exceptions.
+- Evaluation results.
 
-## 11.3 Quality Evaluation
+## 13.3 Trace Privacy
 
-| Metric | Acceptance interpretation |
+Before sending real project data to LangWatch:
+
+- Review transmitted prompt and document content.
+- Verify permitted storage and retention arrangements.
+- Apply data minimization.
+- Restrict dashboard access.
+
+## 13.4 Evaluation Scope
+
+The formal test package must include all twelve capstone scenarios.
+
+Tests must evaluate:
+
+- Routing.
+- Source grounding.
+- Exact counts.
+- Sprint isolation.
+- Milestone correctness.
+- Risk relevance.
+- Missing-data handling.
+- Output completeness.
+- Response latency.
+- Cost.
+
+# 14. Reliability and Error Handling
+
+| Failure | Required response |
 |---|---|
-| Routing accuracy | Correct specialist selection |
-| Grounding accuracy | Claims supported by source records |
-| Count accuracy | Exact status-count reconciliation |
-| Schema validity | Required response fields present |
-| Date accuracy | Correct deadline/window evaluation |
-| Hallucination count | Unsupported project facts |
-| Latency | Measured execution duration |
-| Cost per plan | Recorded token-based LLM cost |
+| File missing | INSUFFICIENT_DATA |
+| Invalid file schema | VALIDATION_ERROR |
+| Unknown sprint | Controlled no-data response |
+| Invalid status | VALIDATION_ERROR |
+| Missing due date | No overdue inference |
+| Missing dependency | No unsupported impact claim |
+| Ambiguous request | Clarification |
+| Model service failure | SERVICE_ERROR |
+| Tool execution failure | Controlled error |
+| Invalid response structure | Validation failure / bounded retry |
+| Observability interruption | Disclose missing evidence |
 
-## 11.4 Baseline Tests
+Retries must have a configured upper limit.
 
-The mandatory evaluation matrix contains T1–T12.
+# 15. Performance, Cost and Business Evaluation
 
-Each run must record:
+## 15.1 Technical Metrics
 
-- Test input.
-- Expected behavior.
-- Actual behavior.
-- Pass/fail.
-- Workflow version.
-- Dataset version.
-- Trace reference, where available.
-- Defect reference, if failed.
+- Routing accuracy.
+- Task-count accuracy.
+- Grounding accuracy.
+- Schema validity.
+- Response latency.
+- Error rate.
+- LLM cost per request.
 
-No test shall be declared passed solely because the output looks professional.
+## 15.2 Business Metrics
 
-# 12. Error Handling and Recovery
+The pilot will measure:
 
-| Scenario | Expected behavior |
-|---|---|
-| Missing project file | INSUFFICIENT_DATA |
-| Malformed source CSV | VALIDATION_ERROR |
-| Invalid sprint | INSUFFICIENT_DATA or a documented no-record result |
-| Unknown status value | VALIDATION_ERROR |
-| Missing due date | Do not report overdue |
-| Missing dependency | Do not invent milestone impact |
-| Model service unavailable | SERVICE_ERROR |
-| Agent tool unavailable | SERVICE_ERROR |
-| Invalid JSON response | Validation failure or bounded retry |
-| LangWatch unavailable | Identify missing external trace evidence |
-| Unauthorized data request | Reject or require authorized access controls |
+- Time spent producing project plans.
+- Time spent preparing weekly reports.
+- PM correction effort.
+- User satisfaction with output quality.
+- Consistency of risk and report formats.
+- Actionability of milestone alerts.
 
-Retry policies must be bounded and must not allow repeated unlimited model calls.
+## 15.3 Proposed Targets
 
-# 13. Performance and Cost Architecture
+- Twelve baseline tests completed with documented outcomes.
+- Target of twelve passing after remediation.
+- Exact task count agreement.
+- No unsupported factual claims in accepted baseline outputs.
+- Routine request p95 latency target under thirty seconds, subject to measurement.
 
-## 13.1 Proposed Performance Target
-
-Routine request p95 latency under 30 seconds in the test environment.
-
-This is an objective to verify, not a guaranteed property.
-
-## 13.2 Cost Control
+## 15.4 Cost Management
 
 - Use GPT-4o-mini initially.
-- Avoid unnecessary specialist invocations.
-- Restrict context to relevant source records.
-- Track model usage per request.
-- Compare evaluation quality against cost.
-- Avoid uncontrolled retries.
+- Restrict model context to relevant records.
+- Avoid unnecessary tool calls.
+- Record token usage where supported.
+- Measure plan-generation cost.
+- Document infrastructure and observability costs separately.
 
-## 13.3 Workload Assumptions
+# 16. Versioning and GitHub Integration
 
-The MVP supports a small capstone dataset and limited concurrent use.
+## 16.1 Source Control
 
-Production-scale capacity planning, high availability and disaster recovery are excluded.
+GitHub stores:
 
-# 14. Deployment and GitHub Versioning
+- PRD.
+- TDD.
+- Architecture diagram.
+- Architecture decisions.
+- Langflow JSON exports.
+- Prompt documentation.
+- Evaluation reports.
+- Screenshots.
+- README.
 
-## 14.1 Environment Model
+## 16.2 Workflow Lifecycle
 
-**Development:** Langflow instance, approved test data, OpenAI credentials, GitHub.
+Development flow → Export JSON → Secret review → Feature branch → Pull request → Review → Main branch.
 
-**Evaluation:** Stable workflow exports, versioned datasets, LangWatch traces and test results.
+## 16.3 Deployment Limitations
 
-**Production:** Outside MVP scope.
+Uploading JSON to GitHub does not automatically deploy or update Langflow.
 
-## 14.2 GitHub Repository Structure
+Runtime flows must be re-imported or updated using a separately approved integration.
 
-```text
-mira-ai-project-intelligence/
-├── README.md
-├── docs/
-│   ├── PRD.md
-│   ├── Technical_Design_Document.md
-│   ├── Architecture.md
-│   ├── ADR.md
-│   └── Program_Charter.md
-├── flows/
-│   ├── Mira_00_Orchestrator.json
-│   ├── Mira_01_Planner.json
-│   ├── Mira_02_Risk_Assessor.json
-│   ├── Mira_03_Status_Reporter.json
-│   └── Mira_04_Milestone_Tracker.json
-├── data/
-├── prompts/
-├── testing/
-│   ├── Baseline_Test_Results.md
-│   └── Evaluation_Metrics.md
-└── screenshots/
-```
+## 16.4 Version Compatibility
 
-## 14.3 Release Management
+Record:
 
-The tested GitHub main branch serves as the accepted configuration baseline.
+- Langflow version.
+- Model name.
+- Flow version.
+- Dataset version.
+- Prompt version.
+- Observability integration version.
 
-Development changes should be made on feature branches.
+## 16.5 Rollback
 
-A workflow change is eligible for merge when:
+Re-import the last accepted JSON flow and reconfigure environment-specific credentials as necessary.
 
-- The flow executes.
-- Applicable tests pass.
-- Required documentation is updated.
-- Secrets are absent.
-- Review is complete.
+Execute smoke tests to confirm the restored workflow is functional.
 
-## 14.4 Rollback
+# 17. Test and Acceptance Architecture
 
-Restore a previously accepted JSON flow from GitHub, re-import it into Langflow and re-run representative acceptance tests.
+## 17.1 Test Levels
 
-External credentials and file references may need to be reconfigured after import.
+**Component tests:** Individual specialist capabilities.
 
-# 15. Architecture Decision Records
+**Integration tests:** Orchestrator-to-specialist calls and data interfaces.
+
+**Data tests:** Input schemas, filtering, aggregation and dates.
+
+**AI evaluations:** Grounding, relevance and hallucination checks.
+
+**UAT:** PM/TPM assessment of business usefulness.
+
+## 17.2 Baseline Traceability
+
+| Test | Component | Required validation |
+|---|---|---|
+| T1 | Planner | Approved phases, milestones and timeline |
+| T2 | Planner | Clarification for vague chatbot |
+| T3 | Risk | Relevant risks |
+| T4 | Risk | Clarification for vague request |
+| T5 | Status | Actual Sprint 3 tasks |
+| T6 | Status | No fabricated statuses |
+| T7 | Risk | Actual top-three source risks |
+| T8 | Tracker | T024 plus applicable deadlines |
+| T9 | Planner | Clarification for limited details |
+| T10 | Status | Exact status counts |
+| T11 | Tracker | Actual upcoming milestones |
+| T12 | Status | Sprint 2 stakeholder email only |
+
+## 17.3 Formal Test Record
+
+Each formal test records:
+
+- Test ID.
+- Input.
+- Workflow version.
+- Dataset version.
+- Expected result.
+- Actual result.
+- Pass/fail.
+- Trace reference.
+- Defect ID.
+- Reviewer.
+
+## 17.4 Release Acceptance
+
+Critical defects involving wrong task counts, invented source facts or incorrect project context must be resolved before final acceptance.
+
+Missing observability evidence, incomplete tests or unreviewed exported credentials also block submission readiness.
+
+# 18. Architecture Decision Register
 
 | ADR | Decision | Status |
 |---|---|---|
-| ADR-001 | Langflow is the primary visual agent platform | Selected |
-| ADR-002 | Router/Dispatcher architecture | Selected |
-| ADR-003 | GPT-4o-mini is the initial LLM | Selected |
-| ADR-004 | Direct file retrieval; no vector database initially | Selected |
-| ADR-005 | Deterministic data calculations required | Mandatory; mechanism pending |
-| ADR-006 | LangWatch for observability | Selected; integration pending |
-| ADR-007 | GitHub JSON export/import versioning | Selected |
-| ADR-008 | Human approval before external distribution | Selected |
-| ADR-009 | One authoritative dataset per formal test run | Selected |
+| ADR-001 | Use Langflow for no-code agent development | Approved for POC |
+| ADR-002 | Use Router/Dispatcher architecture | Approved for POC |
+| ADR-003 | Use GPT-4o-mini initially | Approved for POC |
+| ADR-004 | Use direct file ingestion rather than RAG | Approved for POC |
+| ADR-005 | Use deterministic data calculations | Required; mechanism pending validation |
+| ADR-006 | Use LangWatch for evaluation | Pending integration validation |
+| ADR-007 | Use GitHub export-based version control | Approved |
+| ADR-008 | Require human review before external use | Approved |
+| ADR-009 | Scope requests to approved project data | Approved |
+| ADR-010 | On-demand milestone alerts for MVP | Approved |
+| ADR-011 | Conditional spreadsheet calculation fallback | Pending feasibility result |
 
-# 16. Technical Proof-of-Concept Gates
+# 19. Implementation Gates
 
-## Gate 1: Environment Readiness
+## Gate 1 – Product and Architecture Baseline
 
-- Langflow starts successfully.
-- OpenAI connectivity works.
-- First sample flow runs.
-- Workflow exports successfully.
+- PRD approved.
+- TDD reviewed.
+- Required data obtained.
+- GitHub project initialized.
 
-## Gate 2: Data Readiness
+## Gate 2 – Data Readiness
 
-- All required files available.
-- Source schemas inspected.
-- Record counts checked.
-- Field mappings documented.
+- All source files available.
+- Source headers inspected.
+- Canonical field mapping documented.
+- Baseline record counts verified.
 
-## Gate 3: No-Code Feasibility
+## Gate 3 – No-Code Feasibility
 
-- Sprint filtering works.
-- Exact task aggregation works.
-- T024 is identified as blocked.
-- Date comparisons produce correct results.
-- Missing data produces a controlled outcome.
+- Read task board.
+- Filter Sprint 3.
+- Calculate exact counts.
+- Identify T024.
+- Evaluate due dates.
+- Produce validated structured output.
 
-**Failure of Gate 3 requires architecture remediation before full implementation.**
+Failure requires an architecture decision before proceeding.
 
-## Gate 4: Specialist Agent Acceptance
+## Gate 4 – Specialist Agent Build
 
-Each of the four specialist flows runs independently with its required source data.
+Planner, Risk Assessor, Status Reporter and Milestone Tracker independently pass their applicable tests.
 
-## Gate 5: Orchestrator Integration
+## Gate 5 – Orchestration
 
-Requests invoke the intended specialist and return compatible outputs.
+The main flow routes requests correctly and preserves data context.
 
-## Gate 6: Observability and Testing
+## Gate 6 – Evaluation
 
-- LangWatch trace verified.
-- All 12 baseline tests executed.
-- Critical grounding issues addressed.
-- Cost and latency recorded.
+- LangWatch trace available.
+- Twelve baseline tests executed.
+- Critical defects remediated.
+- Cost and latency documented.
 
-## Gate 7: Submission Readiness
+## Gate 7 – Submission
 
-- Approved JSON flows in GitHub.
-- PRD and TDD committed.
-- Architecture diagram available.
-- Test evidence documented.
-- Screenshots captured.
-- README includes reproduction steps.
+- Langflow JSON exports available.
+- GitHub documentation complete.
+- Architecture diagram included.
+- Evaluation results and screenshots committed.
+- Reproduction instructions verified.
 
-# 17. Requirements Traceability
+# 20. Open Technical Issues
 
-| PRD requirement group | System component | Evaluation |
+| ID | Issue | Resolution required |
 |---|---|---|
-| Ingestion and validation | Data Services | File and schema tests |
-| Intent routing | Orchestrator | Routing tests |
-| Project planning | Planner | T1, T2, T9 |
-| Risk assessment | Risk Assessor | T3, T4, T7 |
-| Task reporting | Status Reporter | T5, T6, T10 |
-| Milestone intelligence | Milestone Tracker | T8, T11 |
-| Stakeholder updates | Status Reporter | T12 |
-| Grounding and error handling | Shared validation | Cross-cutting |
-| Observability | LangWatch | Execution evidence |
-| Output format | Response validation | Schema tests |
+| OT-01 | Actual CSV column names | Inspect supplied files |
+| OT-02 | Langflow-only counting | Execute no-code POC |
+| OT-03 | Date comparison mechanism | Execute no-code POC |
+| OT-04 | Actual risk priority fields | Inspect risk CSV |
+| OT-05 | Timeline-to-task relationships | Inspect data |
+| OT-06 | LangWatch integration compatibility | Test runtime |
+| OT-07 | Automated factual validation scope | Decide control mechanism |
+| OT-08 | Project context propagation | Integration test |
+| OT-09 | Subflow schema compatibility | Confirm Run Flow inputs/outputs |
+| OT-10 | Source-data refresh process | Document and test |
 
-# 18. Open Architecture Risks
+# 21. Senior Architecture Approval
 
-| ID | Open issue | Resolution owner |
-|---|---|---|
-| OA-01 | Actual input CSV field schemas | AI PM/TPM |
-| OA-02 | Native no-code aggregation mechanism | Technical implementer |
-| OA-03 | Date evaluation component | Technical implementer |
-| OA-04 | Risk ranking basis | Product owner |
-| OA-05 | Milestone-task relationship availability | Data owner |
-| OA-06 | LangWatch runtime integration | Technical implementer |
-| OA-07 | Source-reference validation mechanism | Technical architect |
-| OA-08 | Multi-agent routing accuracy | QA/Evaluation owner |
-| OA-09 | Workflow import/export compatibility | Technical implementer |
+**Disposition:** Conditional approval for proof-of-concept development.
 
-# 19. Definition of Done
+The architecture is aligned with the MVP requirements of PRD v1.1 and the original Mira capstone.
 
-An agent is considered complete only after:
+The remaining critical dependencies are:
 
-1. Its Langflow workflow is configured.
-2. Required data sources are available and validated.
-3. Applicable business rules are implemented.
-4. It produces the documented response contract.
-5. Factual outputs are verified.
-6. Applicable baseline tests pass.
-7. Trace evidence or its documented limitation is captured.
-8. JSON is exported and reviewed.
-9. GitHub artifacts are committed.
-10. Acceptance evidence is recorded.
+1. Confirming actual input schemas.
+2. Proving no-code deterministic calculations.
+3. Demonstrating reliable specialist routing.
+4. Validating grounding controls.
+5. Establishing working observability.
 
-# 20. Architecture Approval Recommendation
+Full implementation approval depends on successful completion of these feasibility gates.
 
-**Status: Conditionally approved for proof-of-concept development.**
+**Next technical deliverable:** Detailed Langflow Component and Interface Specification.
 
-The proposed Langflow multi-agent architecture is aligned with Mira PRD v1.1, subject to resolution of the critical implementation dependencies.
-
-No-code data aggregation, date comparisons, source validation and observability integration must be demonstrated rather than assumed.
-
-The first build milestone shall be an end-to-end Status Reporter workflow that reads the approved task-board CSV and produces accurately calculated task counts.
-
-**Next artifact:** Langflow Detailed Component Design and Workflow Configuration Specification.
+**First build target:** A Status Reporter that reads the real task-board CSV, returns exact status counts and identifies the documented blocked task.
 
 ---
 
-**End of Technical Design Document v1.1**
+**End of Technical Design Document v1.2**
