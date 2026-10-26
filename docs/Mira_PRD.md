@@ -4,7 +4,7 @@
 
 | Document control | Value |
 |---|---|
-| **Version** | **1.2 – n8n Implementation Alignment** |
+| **Version** | **1.3 – Source-Validated Capstone Baseline** |
 | **Status** | **Proposed – Pending Product Owner / Architecture Review and Approval** |
 | **Date** | October 25, 2026 |
 | **Project** | Applied Agentic AI for PMs/TPMs – Capstone |
@@ -16,7 +16,7 @@
 | **Model** | Approved OpenAI model, version pinned at implementation (GPT-4o-mini is a historical candidate, not an unconditional commitment) |
 | **Version control** | GitHub; manual review of n8n JSON exports |
 | **Requirements baseline** | PRD v1.1 business problems, FR-001–FR-018, T1–T12, and capstone scope retained |
-| **Related controlled documents** | [Technical Design v2.1](Technical_Design_Document.md) · [Architecture v2.1](Architecture.md) · [Project Charter v1.1](Project_Charter.md) |
+| **Related controlled documents** | [Technical Design v2.2](Technical_Design_Document.md) · [Architecture v2.2](Architecture.md) · [Project Charter v1.2](Project_Charter.md) |
 | **Architecture decision** | ADR-014 – n8n-only over Langflow-only and n8n/Langflow hybrid (proposed) |
 | **Production expansion** | **NOT approved in this PRD:** separately proposed PRD v2.0 / CR-PROD-001 / CR-001, FR-019–FR-026, production controls, P01–P15 |
 
@@ -44,6 +44,14 @@ Mira converts **approved project descriptions, schedules, registered risks and t
 **Why the problem matters:** Administrative effort, uneven governance, delayed awareness and decision-making from incomplete or inaccurate information.  
 **What success means:** Less manual preparation time, correct source-derived facts, standardized outputs, earlier issue visibility, accountable review and evidence demonstrating reliability.  
 **What this PRD does not claim:** Achieved savings, deployed workflows, verified alerts, real-time project tracking or production authorization.
+
+### 1.2 Business problem statement and the two distinct outcome layers (source-validated)
+
+**Original capstone problem (unchanged):** Nexora PMs/TPMs managing concurrent projects spend approximately **3–4 hours building a plan** and **1–2 hours preparing a weekly report**; risk assessments vary in quality, blocked tasks and missed milestones are surfaced late, and project governance is inconsistent. Mira addresses this *project-management workflow problem* through a no-code-first, source-grounded, multi-agent assistant.
+
+**ABCDE client program (not Mira's own impact claim):** `project_description.txt` identifies four AI adoption domains—demand forecasting, route optimization, inventory management and customer support—and business ambitions of **15% fewer delivery delays**, **10% lower operational costs** and improved responsiveness. These are **ABCDE's intended AI adoption outcomes**, not results delivered or guaranteed by Mira. Mira's value is measured separately: PM/TPM hours saved, factual accuracy, blocked-work visibility, provenance, and consistent governance documents. Benefits must be measured in the proposed pilot rather than asserted as achieved.
+
+**Scope guard:** The core capstone requires project planning, risk matrix, weekly status reports, **at least one extended capability** (selected: milestone/blocker alerts), Router/Dispatcher multi-agent pattern, grounding, prompt engineering, trace/evaluation evidence and T1–T12. A scheduled autonomous alert service, live connectors, enterprise SSO, full production deployment and 10-user pilot remain separately proposed only.
 
 ## 2. Business Problem and Opportunity
 
@@ -177,7 +185,7 @@ A production-target component shown in [Architecture.md](Architecture.md) does *
 
 ### UC-04 – Identify blocked, overdue and upcoming milestones
 
-**Actor:** TPM. **Data:** task board + approved timeline + fixed `as_of_date`. **Route:** Router → date/status rules → Milestone Tracker. **Draft:** observed blockers (including source-backed **T024 Security review**), due-date conditions and relevant actual milestones; missing dependencies are *unknown*, not silently assumed. Blocked status does not automatically prove milestone delay (**T8/T11**).
+**Actor:** TPM. **Data:** task board + approved timeline + fixed `as_of_date`. **Route:** Router → date/status rules → Milestone Tracker. **Draft:** observed blockers (including source-backed **T024 Security review of AI infrastructure**), due-date conditions and relevant actual milestones; missing dependencies are *unknown*, not silently assumed. Blocked status does not automatically prove milestone delay (**T8/T11**).
 
 ### UC-05 – Draft an audience-appropriate stakeholder update
 
@@ -238,7 +246,7 @@ A production-target component shown in [Architecture.md](Architecture.md) does *
 **FR-007/008 — Reporting and arithmetic**
 - Preserve actual task names, statuses, IDs and sprint memberships; filter requested period **before** aggregation and generation.
 - Count all valid records, reject unmatched status categories, verify no duplicated/missing IDs and `sum(status_counts) = valid_task_total`.
-- T10 expected snapshot: **25** tasks, **3 Done / 3 In Progress / 1 Blocked / 18 To Do** (to be confirmed against original file).
+- T10 expected snapshot: **25** tasks, **5 Done / 3 In Progress / 1 Blocked / 16 To Do** (source-verified fixture; workflow run pending).
 - Percentages, if displayed, use explicitly defined numerator/denominator; absent board → no counts or claims of progress (**T6**).
 
 **FR-009/010 — Milestone and due-date intelligence**
@@ -276,9 +284,20 @@ A production-target component shown in [Architecture.md](Architecture.md) does *
 - Generated plans, risks and reports are **DRAFT** recommendations; source documents remain the systems of record.
 - n8n workflow-builder roles are not equivalent to business-user per-project data authorization.
 
+### 7.3A Source-derived acceptance controls (2026-10-25 input rebaseline)
+
+These controls *clarify* FR-001–FR-018 rather than create new capstone scope:
+
+- **FR-001/FR-013:** Validate the exact task, risk and timeline headers above; preserve source values and identifiers. Reject bad status spelling, duplicate task IDs, invalid `due_date`, missing required fields, and incomplete records. The **25-record assertion applies to this capstone fixture**, not any future project.
+- **FR-007/FR-008:** Compute full-board counts with deterministic n8n nodes: `5 Done / 3 In Progress / 1 Blocked / 16 To Do = 25`; sprint filters must run before narrative generation.
+- **FR-005/FR-006:** Risk ranking is not directly available in `project_risks.csv`. T7 must report source risk IDs and transparently state its selection or proposed risk-order method; no fabricated scoring.
+- **FR-009/FR-010:** Report T024 as blocked using the complete task name, and treat overdue task dates and relative-week milestone windows as **different calculations**. A milestone-delay claim requires documented dependencies; when calendar context is missing, respond with a clarification request rather than inventing dates.
+- **FR-011:** A Sprint 2 stakeholder *draft* may mention only T004–T006 as observed sprint activities; send is disabled pending PM approval.
+- **FR-012/FR-014/FR-015:** Record `source_snapshot_id` or source checksum, `as_of_date` (when relevant), data freshness, test ID, workflow revision and decision outcome in the test evidence ledger.
+
 ### 7.4 Proposed production extensions — **not part of approved FR-001–FR-018 baseline**
 
-The following are **proposed feature IDs only**, consistent with TDD v2.1, Architecture v2.1 and Charter v1.1; detailed acceptance policies require PRD v2.0/CR-001 approval.
+The following are **proposed feature IDs only**, consistent with TDD v2.2, Architecture v2.2 and Charter v1.2; detailed acceptance policies require PRD v2.0/CR-001 approval.
 
 | Proposed ID | Phase B capability | Prerequisite / release control |
 |---|---|---|
@@ -326,7 +345,7 @@ See [Architecture.md](Architecture.md) for the **seven diagrams**: production de
 - Additional agent delegation is optional and must be explicitly justified. Multiple *logical specialist workflows* fulfill the capstone agent design; autonomous inter-agent tool-use must not be claimed unless built and tested.
 - Avoid model-based routing when a deterministic rule is sufficient to reduce avoidable token usage and ambiguity.
 
-### 8.3 Named logical workflows (consistent with TDD v2.1)
+### 8.3 Named logical workflows (consistent with TDD v2.2)
 
 | ID | Workflow | Contract and role | MVP status |
 |---|---|---|---|
@@ -399,6 +418,31 @@ Conflicting records/snapshots must be flagged rather than silently reconciled. D
 **Decision controls:** CTO/architecture approval pending; G3 must demonstrate correct n8n data rules; G4/G6 must prove specialists/evaluation; monitor actual total cost, latency and errors. **Reopen ADR-014** if n8n fails a required invariant or independent AI quality is materially weaker, and compare hybrid on identical test fixtures. All FR-001–FR-018 and T1–T12 remain intact.
 
 ## 9. Data and Grounding Requirements
+
+### 9.0 Approved source-data inventory and actual contracts — CR-DATA-001–008
+
+The supplied archive `Resources-20261025T215745Z-1-001.zip` contains these *five canonical capstone sources* and three supporting reference documents. **The ZIP was inspected offline; n8n workflows have not yet executed.** Field spellings are exact and case-sensitive as supplied.
+
+| Canonical input | Exact content / schema | How Mira may use it |
+|---|---|---|
+| `project_description.txt` | ABCDE logistics AI-adoption objectives; four use cases; outcome targets | Business problem, scope and planning facts |
+| `project_timeline.csv` | `phase,phase_name,start_week,end_week,key_activities,milestones_deliverables`; **8 phases, Weeks 1–24** | Relative phase sequencing and named milestones; **no project start date, calendar due date, or dependency links** |
+| `project_risks.csv` | `risk_id,category,risk_challenge,impact,mitigation_strategy`; **R01–R10** | Registered risk matrix; **no severity, probability, score, risk owner or rank** |
+| `sample_task_board.csv` | `task_id,task_name,status,assignee,priority,sprint,due_date,labels,description`; **25 unique tasks** | Task status, named owner, sprint, due-date checks, evidence-backed blocker description |
+| `eval_mira_inputs.txt` | **T1–T12** original evaluation prompts | Immutable acceptance prompts; expected outcomes specified separately |
+
+Reference-only resources: `ABCDE Ltd Introduction..txt` repeats the description; `AI Adoption Project Timeline.pdf` is a human-readable representation of the CSV schedule; and `Risks and Challenges in AI Adoption Project – ABCDE Ltd.docx` expands risk descriptions with wording that is **not identical** to the risk CSV. TXT/CSV remain the machine-readable capstone authority; differences are disclosed, not silently merged.
+
+**Verified full-board fixture (despite a contradictory sample mix in the assignment prose):** `Done = 5`, `In Progress = 3`, `Blocked = 1`, `To Do = 16`, total `25`; valid task IDs `T001`–`T025` (not in numeric order within the file); statuses must use supplied spelling. **T024 — Security review of AI infrastructure** is `Blocked`, Sprint 5, due `2026-05-26`; its recorded blocker is waiting for security team availability.
+
+**Sprint 2 (T12):** `T004`/`T005` = `Done`, `T006` = `In Progress`. **Sprint 3 (T5):** `T007`/`T025` = `In Progress`, `T008`/`T009` = `To Do`. These are data-derived acceptance fixtures, not evidence of a running workflow.
+
+**Assignment-versus-file discrepancy (retain in review record):** The capstone problem statement's *About the sample data* paragraph says **3 Done, 3 In Progress, 1 Blocked, rest To Do**. The attached authoritative `sample_task_board.csv` actually has **5 Done, 3 In Progress, 1 Blocked, 16 To Do**. T10 requires counts matching the **actual data**. The original assignment is not edited; QA records this difference as CR-DATA-001 and asks the product owner/instructor to approve the source-derived fixture before marking the test passed.
+
+**Time/ranking constraints:** Task `due_date` is a calendar date, but this source is a static historical snapshot (task dates span April–August 2026), not a live feed. A deadline evaluation requires an explicit `as_of_date` and snapshot provenance. Relative timeline weeks cannot be converted into dates until `project_start_date` or an authorized `as_of_project_week` mapping is supplied. Because source risk records are unranked, T7 must not claim an authoritative top three; return three actual risks with an **explicit illustrative/proposed** basis or ask the PM/TPM to choose a ranking criterion. Proposed risk rankings are not modifications of the source register.
+
+**Isolation:** T2, T4, T6 and T9 are deliberately vague/no-source tests. Do not auto-inject ABCDE descriptions, risks or task records simply because a default project dataset exists.
+
 
 ### 9.1 Provided/expected input artifacts
 
@@ -475,6 +519,9 @@ All values are design targets unless backed by executed tests. Production SLO/SL
 
 ### 12.1 Test approach
 
+**Mandatory capstone observability requirement:** Connect Mira to an actual evaluation/observability tool and produce inspectable evidence of real runs (e.g., an n8n evaluation feature, or a validated integration to Langfuse/LangWatch or another tracing/evaluation service). n8n execution history alone is supporting diagnostic information and must not be represented as proof that the assignment's **connected tool** criterion is met without an explicit, demonstrated evaluation integration or capability. G6 remains open until the selected method is connected, tested, and shown in screenshots/trace links. Any external telemetry service is a supporting observability service, **not** a second orchestration platform.
+
+
 Use pinned source snapshots and fixed `as_of_date` settings. Evaluate (a) deterministic data integrity, (b) logical routing, (c) missing-data behavior, (d) source-grounded natural-language quality, (e) structured output contracts, (f) observability/cost and (g) review controls. Capture actual outputs and discrepancies, not only prompt screenshots.
 
 ### 12.2 T1–T12 baseline test matrix — all retained
@@ -485,16 +532,16 @@ Use pinned source snapshots and fixed `as_of_date` settings. Evaluate (a) determ
 | **T2** | “We want to build a chatbot” | Ask for scope, timeline and team; **no ABCDE fixture injected** | Planner |
 | **T3** | ABCDE project risk matrix | Relevant, source-supported categories, impacts and mitigations | Risk Assessor |
 | **T4** | “New project starting soon” risk request | Ask for needed details; **no ABCDE context injection** | Risk Assessor |
-| **T5** | Sprint 3 status | Actual Sprint 3 task names/statuses only | Status Reporter |
+| **T5** | Sprint 3 status | Exactly T007 and T025 `In Progress`; T008 and T009 `To Do`; no other sprints | Status Reporter |
 | **T6** | “Things are going fine” with no board | No invented statuses or completion percentages; no implicit board | Status Reporter |
-| **T7** | Top three ABCDE risks | Three actual risk records and defensible ranking basis | Risk Assessor |
-| **T8** | Blocked or at-risk tasks | Identify source **T024 Security review as BLOCKED**, apply actual due dates | Milestone Tracker |
+| **T7** | Top three ABCDE risks | Three actual risk IDs R01–R10; no source ranking exists, so seek ranking rule or clearly label unranked illustrative selection/proposed prioritization | Risk Assessor |
+| **T8** | Blocked or at-risk tasks | Identify **T024 Security review of AI infrastructure** as source status `Blocked`, and evaluate dated work using an explicit `as_of_date` | Milestone Tracker |
 | **T9** | Two-week project with no other details | Ask goals, scope and deliverables; **no ABCDE fixture injected** | Planner |
-| **T10** | Overall ABCDE board counts | **25 total: Done 3, In Progress 3, Blocked 1, To Do 18** | Status Reporter / data logic |
-| **T11** | Milestones due in next two weeks | Actual approved milestone rows in fixed window; no fabricated dates | Milestone Tracker |
-| **T12** | Sprint 2 stakeholder email | Professional **draft**, actual Sprint 2-only records, excludes Sprint 3+ | Status Reporter |
+| **T10** | Overall ABCDE board counts | **25 total: Done 5, In Progress 3, Blocked 1, To Do 16** | Status Reporter / data logic |
+| **T11** | Milestones due in next two weeks | The timeline is relative Weeks 1–24; require authorized project start date/project-week anchor before calendar filtering, otherwise ask clarification | Milestone Tracker |
+| **T12** | Sprint 2 stakeholder email | Professional **draft**: T004 and T005 `Done`; T006 `In Progress`; excludes Sprint 3+ | Status Reporter |
 
-T10 counts and T024 are **assignment expected values**, not workflow execution results. T1 timeline details and T7 ranks must be validated from source data; no dates/risk names are invented in this PRD.
+T10 counts and T024 are **verified from the supplied source CSV**, not workflow execution results. T1 timeline details and T7 ranks must be validated from source data; no dates/risk names are invented in this PRD.
 
 ### 12.3 Evidence and defect ledger
 
@@ -535,7 +582,7 @@ An enterprise portal and access gateway require SSO/MFA, trusted identity and `p
 
 | Decision | Accountable authority |
 |---|---|
-| PRD v1.2 business scope and priorities | Product Owner / AI PM/TPM |
+| PRD v1.3 business scope and priorities | Product Owner / AI PM/TPM |
 | ADR-014 platform and no-code exceptions | Architect / CTO delegate |
 | Data classification and fixtures | Project data owner |
 | T1–T12 acceptance | QA/evaluation owner + Product Owner |
@@ -548,22 +595,22 @@ An enterprise portal and access gateway require SSO/MFA, trusted identity and `p
 
 | Step | Major work | Deliverable / evidence |
 |---|---|---|
-| Discovery and requirements | Baseline PRD, input data owners, acceptance ledger | Proposed PRD v1.2 and approved backlog |
-| Architecture | ADR-014 and single-platform logical design | TDD v2.1, Architecture v2.1, Charter v1.1 |
+| Discovery and requirements | Baseline PRD, input data owners, acceptance ledger | Proposed PRD v1.3 and approved backlog |
+| Architecture | ADR-014 and single-platform logical design | TDD v2.2, Architecture v2.2, Charter v1.2 |
 | Environment | n8n approved instance, secured model credentials | G1 platform smoke test |
 | **MIRA-001 data proof** | Real CSV input, exact status counts, uniqueness, sprint filter, date controls | **G2/G3 blocker**, before model reliance |
 | Specialist implementation | Status first; Planner, Risk, Tracker; Router | G4/G5 sub-workflow evidence |
 | Verification | T1–T12, negative-data and malformed-input tests, measurements | G6 result ledger and defects |
 | Release packaging | Reviewed JSON, versioned docs, redacted screens, import/replay | G7 GitHub capstone submission |
 
-### 14.2 Unified gate register (aligned with Charter/TDD v2.1)
+### 14.2 Unified gate register (aligned with Charter/TDD v2.2)
 
 | Gate | Acceptance meaning | Authorization boundary |
 |---|---|---|
 | **C0** | Charter/ADR sponsor and technical scope acknowledgment | Pre-phase authorization |
 | **G1** | n8n environment, credentials and export/import smoke test | Capstone |
 | **G2** | All five actual source files inspected, data classifications and schemas approved | Capstone |
-| **G3 – MIRA-001** | 25 unique valid task records; **3/3/1/18**; source T024; sprint filter, negative tests; zero LLM arithmetic | **Blocking Capstone** |
+| **G3 – MIRA-001** | 25 unique valid task records; **5/3/1/16**; source T024; sprint filter, negative tests; zero LLM arithmetic | **Blocking Capstone** |
 | **G4** | Four specialist sub-workflow input/output and insufficiency contracts pass | Capstone |
 | **G5** | Router and manual review/no-autosend boundaries shown | Capstone |
 | **G6** | T1–T12 execution ledger, costs/latency/errors, remediation | Capstone |
@@ -693,11 +740,15 @@ Production DoD is **separate** and includes approved Phase B change scope, P01�
 
 ## 19. MVP Capstone Acceptance Criteria
 
+**Capstone deliverables and scoring integrity:** In addition to the working workflows, preserve Q1 ideation (2–3 PM/TPM use cases with pain point, agent solution, inputs/outputs, three metrics and knowledge base); Q2 Build (architecture diagram, multi-agent workflow, core plus selected milestone extended capability, connected observability, T1–T12 output evidence, cost per plan, three or more evaluation metrics and 1–2-page write-up); Q3 Program Charter; and Q4 one-page reflection (trace findings, improvements, evaluation/fine-tuning considerations, privacy and a *proposed* ten-PM/TPM rollout). GitHub README, workflow JSON exports, screenshots of canvas, Mira results and observability traces, and submission link remain mandatory. **Do not substitute proposed production features for any scored capstone requirement.**
+
+
+
 The Product Owner may consider Mira ready for the **final capstone demo** only when:
 
 - G1–G7 evidence is completed and any remaining deviations are signed off.
 - Four n8n specialists and the Router demonstrate their defined logical contracts; invalid or missing source cases are handled.
-- G3 proves complete ABCDE task processing: source-verified **25 / 3 / 3 / 1 / 18** status aggregation, duplicate/unknown checks, **T024** blocked, sprint filter and date rules.
+- G3 proves complete ABCDE task processing: source-verified **25 / 5 / 3 / 1 / 16** status aggregation, duplicate/unknown checks, **T024** blocked, sprint filter and date rules.
 - T1–T12 have logged execution outputs and pass/fail assertions, targeting twelve passes after fixes.
 - T2/T4/T6/T9 don't consume unrelated ABCDE fixtures; T12 is a scoped **draft** reviewed before external use.
 - No known critical arithmetic, unsupported-fact, project isolation, credential-exposure or unsafe publication defect is unresolved.
@@ -726,7 +777,7 @@ The Product Owner may consider Mira ready for the **final capstone demo** only w
 
 | Role | Name | Decision | Status |
 |---|---|---|---|
-| Product Owner / AI PM/TPM | TBD | Functional scope, criteria, priority and PRD v1.2 | Pending |
+| Product Owner / AI PM/TPM | TBD | Functional scope, criteria, priority and PRD v1.3 | Pending |
 | Enterprise Architect / CTO delegate | TBD | ADR-014 and n8n feasibility exceptions | Pending |
 | QA / Evaluation Owner | TBD | Test coverage, expected assertions and evidence | Pending |
 | ABCDE / Nexora Data Owner | TBD | Dataset content and permissible usage | Pending |
@@ -736,16 +787,22 @@ The Product Owner may consider Mira ready for the **final capstone demo** only w
 
 ## 22. Version History and Baselining Impact
 
+**v1.3 (2026-10-25), Proposed:** Validated the *supplied* source ZIP; corrected T10 to `5/3/1/16`, normalized exact T024 name and `Blocked` casing, added Sprint 2/3 record fixtures, required T7 ranking transparency and T11 project-week/calendar mapping, and distinguished ABCDE business goals from Mira product outcomes. **No change** to capstone scope, FR-001–FR-018, Router/Dispatcher, four specialist capabilities, n8n-only design, T1–T12 prompt wording, or Phase B approval boundary.
+
+**v1.2 (2026-10-25), historical:** n8n-only platform alignment/ADR-014. **v1.1, historical:** original capstone business and functional baseline.
+
+
 | Version | Date | Summary | Relationship to other baselines |
 |---|---|---|---|
 | **v1.0** | Prior | Initial Mira business vision, user cases and AI-agent scope | Historical |
 | **v1.1** | Prior | Detailed FR-001–FR-018, data grounding, T1–T12, Langflow-centered implementation | **Preserved functional baseline** |
-| **v1.2 (this document)** | **2026-10-25** | Clarified explicit problem statement; selected **n8n-only** per proposed ADR-014; mapped all FRs to n8n flows; updated evaluation, security, cost, API, workflow export and release controls; protected Phase A/Phase B boundary | **Proposed requirements/implementation-alignment baseline** |
+| **v1.2 (historical)** | **2026-10-25** | Clarified explicit problem statement; selected **n8n-only** per proposed ADR-014; mapped all FRs to n8n flows; updated evaluation, security, cost, API, workflow export and release controls; protected Phase A/Phase B boundary | Historical proposed revision |
+| **v1.3 (current)** | **2026-10-25** | Reconciled actual source ZIP against assignment narrative; updated CSV schemas, T5/T10/T12 fixtures, risk ranking, milestone calendar rules and connected observability evidence | **Proposed, approval pending** |
 | **v2.0 / CR-PROD-001** | Future / pending | Proposed production portal, scheduled alert lifecycle FR-019–FR-026, P01–P15 and operating/security guarantees | **Not approved by this document** |
 
 ### 22.1 What changed from v1.1—and what did not
 
-| Area | v1.1 | v1.2 disposition |
+| Area | v1.1 | v1.2 implementation revision (retained in v1.3) |
 |---|---|---|
 | Business problem, six-month ABCDE context | Original | **Unchanged, clarified** |
 | FR-001–FR-018 / T1–T12 | Original | **All retained, explicit source assertions** |
@@ -753,7 +810,7 @@ The Product Owner may consider Mira ready for the **final capstone demo** only w
 | Primary orchestrator | Langflow Router / Run Flow | **n8n Switch/IF + Execute Sub-workflow** |
 | File ingestion/count/date | Langflow components or supplemental service | **n8n visual processing; G3 feasibility mandatory** |
 | LLM | GPT-4o-mini | **Approved supported model; pin/benchmark, record price** |
-| Observability | LangWatch specified | **n8n executions/evals plus manual evidence; optional external tool** |
+| Observability | LangWatch specified | **Connected n8n evaluation/observability tool required; actual trace evidence mandatory; execution logs supplemental** |
 | Version-controlled workflow exports | Langflow JSON | **n8n JSON**, reviewed for sensitive values |
 | Milestone alerts | On-demand baseline, discussion of automation | **On-demand stays MVP; proactive lifecycle Phase B only** |
 | Human approval | Required before sending | **Manual MVP safeguard retained; durable audited approval Phase B** |
@@ -761,10 +818,10 @@ The Product Owner may consider Mira ready for the **final capstone demo** only w
 
 ### 22.2 Companion document alignment after PRD approval
 
-- Update only the **active requirements baseline references** in `Technical_Design_Document.md` v2.1, `Architecture.md` v2.1 and `Project_Charter.md` v1.1 from **PRD v1.1 → PRD v1.2** by reviewed pull request; retain historical v1.1 citations/change-log entries as historical.
+- Update the **active requirements baseline references** in `Technical_Design_Document.md` v2.2, `Architecture.md` v2.2 and `Project_Charter.md` v1.2 to **PRD v1.3** by reviewed pull request; retain historical v1.1 citations/change-log entries as historical.
 - Keep **ADR-014 = Proposed** until explicitly approved by architecture authority. Keep **C0 and G1–G10**, **T1–T12** and **P01–P15** identifier schemes stable.
 - Keep FR-019–FR-026 and production security/portal/alert policy **outside** approved MVP until a future PRD v2.0 / CR-001 approval.
-- GitHub branch suggestion: `docs/prd-v1.2-n8n-baseline`; PR review should show FR-001–FR-018 preservation and test-mapping continuity.
+- GitHub branch suggestion: `docs/mira-source-rebaseline-2026-10-25`; PR review should show FR-001–FR-018 preservation and test-mapping continuity.
 
 ---
 
