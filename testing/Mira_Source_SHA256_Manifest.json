@@ -1,0 +1,25 @@
+{
+  "archive_name": "Resources-20261025T215745Z-1-001.zip",
+  "canonical_files": {
+    "project_description.txt": {
+      "sha256": "49ba77f1a609f1623f14bfda27652a75edd0b562e960dd1ca947cd9e77481b4a",
+      "bytes": 1303
+    },
+    "project_timeline.csv": {
+      "sha256": "e9c661552eb41940c50c6737ea89afcf141d71976e28dc97207eb28dc06b8e1f",
+      "bytes": 1235
+    },
+    "project_risks.csv": {
+      "sha256": "0095b080ec6e238954682351abed3eea0786e11251ecd1ffd6092954de825209",
+      "bytes": 1638
+    },
+    "sample_task_board.csv": {
+      "sha256": "25b49e50c513d1760a8727ab005f184bd1b271a02e12b0c0f6f1cf3a61e4e228",
+      "bytes": 4146
+    },
+    "eval_mira_inputs.txt": {
+      "sha256": "26043d3b897f55fcbe3923ec6dbef2fd618b822c9b2f6ff5b2c56543fd05197e",
+      "bytes": 1268
+    }
+  }
+}
