@@ -1,6 +1,6 @@
 # Mira – Project Charter
 
-**Version:** 1.1 – n8n-only implementation rebaseline (from Charter v1.0)  
+**Version:** 1.2 – n8n source-validated capstone rebaseline (from Charter v1.0)  
 **Status:** Proposed program baseline; ADR-014 and sponsor approval pending; not implemented or authorized for production launch  
 **Prepared:** October 25, 2026  
 **Initiative:** Mira – AI-Powered Project Intelligence Assistant  
@@ -8,7 +8,7 @@
 **Initial business context:** ABCDE Ltd. six-month AI Adoption Project  
 **Charter owner:** AI PM / TPM (name to be assigned)  
 **Executive sponsor:** Nexora CTO (proposed; confirmation required)  
-**Baseline references:** Mira PRD v1.1 (business and capstone requirements); `Technical_Design_Document.md` v2.1; `Architecture.md` v2.1; historical Charter v1.0, TDD v2.0 and Architecture v2.0 retained in Git history  
+**Baseline references:** Mira PRD v1.3 (original v1.1 FR-001–FR-018 and T1–T12 preserved); `Technical_Design_Document.md` v2.2; `Architecture.md` v2.2; historical Charter v1.0, TDD v2.0 and Architecture v2.0 retained in Git history  
 **Scope-control note:** This revision changes the **proposed technical implementation baseline**, not the approved requirements. PRD v2.0 / CR-PROD-001 and production funding/approval remain pending. The **capstone proof of concept** and **proposed production program** have distinct authorization gates. See §15 (ADR-014).
 
 ---
@@ -55,15 +55,15 @@ Targets are provisional and must be approved by sponsors before they become serv
 
 ## 4. Scope and phased deliverables
 
-### Phase A – Capstone / controlled proof of concept (PRD v1.1 preserved)
+### Phase A – Capstone / controlled proof of concept (PRD v1.3; original requirement set preserved)
 
 **In scope:** Single ABCDE project baseline (`ABCDE-AI-001` as proposed internal identifier); source files `project_description.txt`, `project_timeline.csv`, `project_risks.csv`, `sample_task_board.csv`, and `eval_mira_inputs.txt`; approved TXT/CSV file ingestion; n8n Form Trigger or controlled test inputs; extraction, schema checks, field normalization and deterministic task/date logic; n8n **Router/Dispatcher** (`Switch`/`IF`) and four reusable specialist sub-workflows (`Execute Sub-workflow`); source-grounded plans and risks; sprint-specific status reporting; on-demand blocker and upcoming-milestone checks; a **draft-only** Sprint 2 stakeholder email; human PM/TPM review; all T1–T12 evaluations; n8n execution/evaluation and model-token/cost records as technically available; redacted evidence and reviewed workflow JSON committed to GitHub.
 
-**Blocking technical spike, MIRA-001:** Ingest the real 25-row task-board fixture; reconcile **3 Done, 3 In Progress, 1 Blocked, 18 To Do**; identify **T024 Security review** as blocked; prove Sprint 3 filtering and missing/duplicate/unknown-status rejection; never use an LLM to calculate counts. Actual CSV headers and data must be inspected before node mapping is declared correct.
+**Blocking technical spike, MIRA-001:** Ingest the real 25-row task-board fixture; reconcile **5 Done, 3 In Progress, 1 Blocked, 16 To Do**; identify **T024 Security review of AI infrastructure** as source status `Blocked`; prove Sprint 3 filtering and missing/duplicate/unknown-status rejection; never use an LLM to calculate counts. Actual CSV headers have been verified; n8n node mappings still require execution evidence.
 
 **Out of scope:** Production-grade SSO/project membership, real-client data without authorization, authenticated multi-project portal, live Jira/Trello sync, autonomous Jira/Trello updates, production SLOs, durable automated approval enforcement, unsupervised external publication, and unattended escalations.
 
-**Required artifacts:** Updated PRD implementation addendum if platform references conflict, TDD v2.1, Architecture v2.1, this Charter v1.1, GitHub README, actual exported **n8n JSON** workflows under `n8n/`, prompt and schema documentation, T1–T12 execution ledger and screenshots, LLM unit-cost/latency and failure-path observations, reflection/Q1–Q4 materials, and reproducible import instructions. **Do not label architecture diagrams or placeholder exports as executed evidence.**
+**Required artifacts:** Updated PRD implementation addendum if platform references conflict, TDD v2.2, Architecture v2.2, this Charter v1.2, GitHub README, actual exported **n8n JSON** workflows under `n8n/`, prompt and schema documentation, T1–T12 execution ledger and screenshots, LLM unit-cost/latency and failure-path observations, reflection/Q1–Q4 materials, and reproducible import instructions. **Do not label architecture diagrams or placeholder exports as executed evidence.**
 
 ### Phase B – Production engineering / limited pilot (change-controlled, not authorized)
 
@@ -75,7 +75,7 @@ Targets are provisional and must be approved by sponsors before they become serv
 
 ## 5. Solution approach and architecture
 
-**Reference implementation:** `docs/Technical_Design_Document.md` v2.1 and `docs/Architecture.md` v2.1 (seven GitHub-renderable Mermaid diagrams). ADR-014 records the recommendation and review conditions.
+**Reference implementation:** `docs/Technical_Design_Document.md` v2.2 and `docs/Architecture.md` v2.2 (seven GitHub-renderable Mermaid diagrams). ADR-014 records the recommendation and review conditions.
 
 | Architecture capability | Phase A implementation / owner | Phase B extension (subject to authorization) |
 |---|---|---|
@@ -120,17 +120,17 @@ Targets are provisional and must be approved by sponsors before they become serv
 
 ## 7. Delivery plan, milestones and decision gates
 
-**Single traceable gate register:** The charter intentionally adopts the TDD v2.1 identifiers **G1–G10** rather than reusing Charter v1.0's different G1–G5 labels. **C0** is the charter authorization checkpoint. Phase B requires independent production verification **P01–P15**.
+**Single traceable gate register:** The charter intentionally adopts the TDD v2.2 identifiers **G1–G10** rather than reusing Charter v1.0's different G1–G5 labels. **C0** is the charter authorization checkpoint. Phase B requires independent production verification **P01–P15**.
 
 | Gate | Deliverable and objective evidence | Accountable reviewer | Stage |
 |---|---|---|---|
 | **C0 – Charter / ADR** | Confirm scope boundaries, owners, funding assumptions, ADR-014 selection and trial-data policy | Sponsor / CTO delegate | Before Phase A authority |
 | **G1 – Platform** | n8n workspace/approved host, scoped OpenAI credential, security settings and export/import smoke test | Platform / Architect | Phase A |
-| **G2 – Source readiness** | Inspect five original capstone files; approve classification, CSV schemas, records, as-of dates and evaluation fixtures | Data owner / QA | Phase A |
-| **G3 – MIRA-001** | Verified 25 task rows; **3/3/1/18**; T024; Sprint 3 scoped result; invalid-input tests; deterministic processing | Architect / QA | Phase A **blocker** |
+| **G2 – Source readiness** | Five canonical files inspected offline; approve exact CSV schemas, 25-row source fixture, historical date policy and T7/T11 ambiguities; approval pending | Data owner / QA | Phase A |
+| **G3 – MIRA-001** | n8n execution proves 25 valid fixture rows and **5/3/1/16**, exact T024, Sprint 2/3 fixture filters, malformed/duplicate/unknown-status rejection and deterministic counts | Architect / QA | Phase A **blocker** |
 | **G4 – Specialists** | Four separately executable n8n specialist sub-workflows with input/output and insufficient-data contracts | Technical lead / QA | Phase A |
 | **G5 – Router and review** | Documented `Switch`/`IF` dispatch, no-data handling, PM/TPM draft review, no unauthorized send | PM/TPM / Architect | Phase A |
-| **G6 – Evaluation** | Run **T1–T12**, record pass/fail and defects, traces/executions, token use, model cost and latency | QA/Evaluation lead | Phase A |
+| **G6 – Evaluation** | Connect and demonstrate evaluation/observability tool, run **T1–T12**, record pass/fail and defects, actual traces/screenshots, token use, model cost and latency | QA/Evaluation lead | Phase A |
 | **G7 – Capstone release** | Reviewed n8n JSON, README, diagrams, charter, tests, screenshots, reproduction and rollback smoke test | PM/TPM + Architect | Phase A exit |
 | **G8 – Production scope** | Sponsor approves PRD v2.0 / FR-019–FR-026, business thresholds, policy, funding and risk ownership | Sponsor / Product Owner / Security | **Phase B entry** |
 | **G9 – Alert POC** | Scheduled check, freshness test, durable alert deduplication, verified delivery and acknowledgement | Delivery operations / SRE | Phase B |
@@ -178,14 +178,17 @@ Targets are provisional and must be approved by sponsors before they become serv
 
 ### Phase A – Capstone evaluation and exit criteria
 
+**Assignment submission integrity:** Q1 (2–3 ideation use cases, three metrics each and knowledge base), Q2 (build and demonstrate required core + milestone extension, a **connected** evaluation/observability tool, T1–T12 test results, cost per plan, three or more metrics and 1–2-page report), Q3 (Program Charter) and Q4 (one-page trace/reflection/privacy/ten-PM/TPM rollout proposal) remain capstone deliverables. A screenshot of n8n execution logs alone does not constitute verified observability-tool connection. The repository must include README, n8n JSON exports, diagrams and canvas/output/trace screenshots. These are delivery commitments for the capstone; **production controls and live integrations remain separately proposed**.
+
+
 Run the unmodified **T1–T12** baseline with each test's input, source fixture/version, expected behavior, actual output, pass/fail, exact error, responsible owner, defect/retest status, workflow export version, model and prompt version, per-test latency and model usage/cost when available. The target is **12/12 demonstrated passes after remediation**; a drafted diagram or prompt does not count as an execution pass.
 
 | Test cases | Required evidence |
 |---|---|
 | **T1/T2/T9 – Planning** | Source-grounded full ABCDE plan; clarification instead of invented scopes/timelines for missing-input cases |
-| **T3/T4/T7 – Risks** | Project-specific risk matrix and top-three grounded in actual risk source; no invented risks for empty input |
-| **T5/T6/T10/T12 – Status & drafts** | Sprint 3 filtered actual board; honest no-data response; exact 25-row count **3 Done / 3 In Progress / 1 Blocked / 18 To Do**; Sprint 2-only stakeholder email **draft** |
-| **T8/T11 – Milestones** | T024 Security review correctly BLOCKED; upcoming milestones strictly from source timeline and test as-of date |
+| **T3/T4/T7 – Risks** | Project-specific risk matrix and three actual registered risks with disclosed selection method (risk register is unranked); no invented risks for empty input |
+| **T5/T6/T10/T12 – Status & drafts** | Sprint 3 filtered actual board; honest no-data response; exact 25-row count **5 Done / 3 In Progress / 1 Blocked / 16 To Do**; Sprint 2-only stakeholder email **draft** |
+| **T8/T11 – Milestones** | T024 Security review of AI infrastructure correctly BLOCKED; relative milestones strictly from timeline; calendar comparisons only after approved project start-date/project-week anchor, otherwise clarification |
 
 **Mandatory safeguard:** T2/T4/T6/T9 must not silently inherit ABCDE data. Sprint 2 email must exclude Sprint 3 and later work. On-demand milestone windows need an explicit reference date; data freshness/actual due dates determine claims.
 
@@ -193,7 +196,7 @@ Run the unmodified **T1–T12** baseline with each test's input, source fixture/
 
 ### Phase B – Production verification, not implied by capstone completion
 
-All **P01–P15** in TDD v2.1 §27 require evidence in production-like staging, including: identity and cross-project denial; malicious file and prompt attacks; stale-source fail-safe; scheduled checks; duplicate-alert and notifier-outage behavior; immutable approval; credential/log redaction; restore/rollback; rate limits; incident paging; and **T1–T12 regression**. SRE/Security/CTO delegate must sign release evidence.
+All **P01–P15** in TDD v2.2 §27 require evidence in production-like staging, including: identity and cross-project denial; malicious file and prompt attacks; stale-source fail-safe; scheduled checks; duplicate-alert and notifier-outage behavior; immutable approval; credential/log redaction; restore/rollback; rate limits; incident paging; and **T1–T12 regression**. SRE/Security/CTO delegate must sign release evidence.
 
 **Proposed service objectives (not achieved SLAs):** 99.9% monthly request availability, routine report-generation p95 ≤30 seconds under defined load excluding reviewer waiting, ≥99% successful monitored checks, recovery RPO ≤1 hour / RTO ≤4 hours where the chosen n8n plan and architecture can support them. Alert notification target: within 15 minutes **of successful detection**, not necessarily within 15 minutes of real-world condition onset; source refresh cadence must be specified.
 
@@ -229,17 +232,27 @@ No automatic enterprise rollout is authorized by this charter.
 
 | Change / decision | Current status | Approval required |
 |---|---|---|
-| **ADR-014 – n8n-only implementation choice** | **Proposed as v2.1 design baseline**; replaces Langflow-first and hybrid in reference designs | Architecture authority / sponsor (as delegated); G3/G6 evidence |
-| **Charter v1.1 rebaseline** | This document proposed; retains business goals, two-phase program, governance and baseline tests | Sponsor / Product Owner |
-| **PRD v1.1 implementation language** | FR scope unchanged; any Langflow-specific prescriptions require a reviewed platform addendum | Product Owner / Architect |
+| **ADR-014 – n8n-only implementation choice** | **Proposed as v2.2 source-validated design baseline**; replaces Langflow-first and hybrid in reference designs | Architecture authority / sponsor (as delegated); G3/G6 evidence |
+| **Charter v1.2 source-data rebaseline** | This document proposed; retains business goals, two-phase program, governance and baseline tests | Sponsor / Product Owner |
+| **PRD v1.3 source-aligned baseline** | FR scope unchanged; any Langflow-specific prescriptions require a reviewed platform addendum | Product Owner / Architect |
 | **CR-001 / CR-PROD-001** | FR-019–FR-026 proactive monitoring and lifecycle proposed | PRD v2.0 / sponsor funding and policy authorization |
 | **CR-002 production portal / controls** | Authenticated selector, identity, project isolation and persistent approval proposed | Architecture/Security, sponsor funding |
 | **n8n licensing/hosting/model selection** | Trial/platform choices and approved model version pending | Platform/Security/Finance |
-| **MIRA-001 and acceptance rules** | Actual CSV mappings/real counts still to be executed | Data owner / QA / Architect |
+| **MIRA-001 and acceptance rules** | Actual CSV fields and offline counts verified; n8n workflow results still unexecuted | Data owner / QA / Architect |
 | **Monitoring policies** | Data freshness, thresholds, source schedule, notification channel, owner, acknowledgement/escalation pending | Product Owner / Delivery Ops / Security |
 | **Pilot resources and SLAs** | Ten-user pilot proposed, not scheduled or funded | Sponsor / SRE / Finance |
 
 **Change-control protocol:** Capture business request and impact (scope, cost, security, data, schedule and testing); review with architect/QA; obtain required approvals; update charter/PRD/TDD/Architecture and impacted test mapping; commit via reviewed GitHub PR; baseline release manifest; retest before promotion. Keep v1.0 Charter and v2.0 technical documents available historically; do not overwrite evidence with unapproved claims.
+
+### CR-DATA-001 — Canonical source-data reconciliation and authorization impact
+
+**Problem discovery (2026-10-25):** The original capstone assignment prose implies `3 Done / 3 In Progress / 1 Blocked / 18 To Do` for a 25-task board, and that mix was repeated as a provisional test count; it is **not supported** by the uploaded CSV. The inspected source gives **25 unique tasks = 5 Done + 3 In Progress + 1 Blocked + 16 To Do**. This corrects an acceptance fixture; it does **not** modify Nexora's original business problem, ABCDE's AI-adoption scope, or the capstone's T1–T12 prompts.
+
+**Decisions requested:** (1) PM/TPM and QA approve source-derived T5/T10/T12 expected records; (2) architecture/QA agree that T7 has no input-defined risk rank, so output must disclose an illustrative selection or await an approved policy; (3) accept that T11 cannot compute upcoming *calendar* milestones from Weeks 1–24 without a calendar anchor; (4) approve treating `sample_task_board.csv` as a historical fixture with explicit `as_of_date` for deadline interpretation. These are **open until signed** and must be reflected in QA evidence.
+
+**Authoritative sources:** `project_description.txt`, `project_timeline.csv`, `project_risks.csv`, `sample_task_board.csv`, `eval_mira_inputs.txt` in the supplied archive. Supporting duplicate TXT/PDF/DOCX are references, not independent alternate datasets. GitHub branch: `docs/mira-source-rebaseline-2026-10-25`; existing signed/previous versions retained in history.
+
+**No scope/budget expansion:** Four specialists, Router/Dispatcher, source grounding, prompt engineering, evaluation/observability and mandatory on-demand milestone extension remain Phase A. Scheduled proactive monitoring, production portal/SSO, live Jira/Trello, encrypted multi-project store and ten-user pilot remain a future Phase B change request, not capstone obligations. No production approval, executed test pass, budget authorization or realized outcome is implied by this charter amendment.
 
 ## 15. Architectural baseline rationale – ADR-014: n8n-only vs. Langflow-only vs. hybrid
 
@@ -264,7 +277,7 @@ No automatic enterprise rollout is authorized by this charter.
 | Workflow artifact | `flows/` Langflow JSON | `n8n/` n8n JSON; no manual Git upload implies deployment |
 | Operational traces | LangWatch principal AI trace assumption | n8n execution/evaluation evidence by default; optional vetted external telemetry |
 | Model | GPT-4o-mini historically proposed | Supported, approved version-pinned OpenAI model to be selected and benchmarked |
-| Requirements and gates | PRD v1.1 T1–T12, production objectives | **All preserved**; P01–P15 and FR-019–FR-026 remain separately gated |
+| Requirements and gates | Original PRD v1.1 T1–T12, proposed production objectives | **All preserved**; P01–P15 and FR-019–FR-026 remain separately gated |
 
 **Decision state:** Proposed design baseline only; ADR-014 and project charter still need named approval. Business scope, expected benefits and acceptance obligations remain unchanged.
 
@@ -285,11 +298,15 @@ No automatic enterprise rollout is authorized by this charter.
 
 ## 17. Document control, preserved baselines and revision history
 
-**Current document:** `docs/Project_Charter.md` **v1.1**. It aligns to:
+**v1.2 (2026-10-25), proposed:** Corrects source-based acceptance to `5/3/1/16`, adds exact Sprint 2/3 and T024 fixture details, discloses missing risk ranks and calendar start date, and records CR-DATA-001 decisions. **Retains unchanged** original business problem, product goals, no-code-first n8n implementation proposal, four specialist agents, T1–T12 and the separate Phase B approval gate.
 
-- `docs/PRD.md` – business requirement **PRD v1.1** baseline; record an implementation addendum for Langflow-specific wording without deleting existing FRs. **PRD v2.0** still requires authorization for proposed production additions.
-- `docs/Technical_Design_Document.md` – **v2.1**, n8n-only architecture, ADR-014, implementation gates G1–G10 and production acceptance P01–P15.
-- `docs/Architecture.md` – **v2.1**, revised Mermaid architecture, source processing, monitoring, approval and evaluation diagrams.
+
+
+**Current document:** `docs/Project_Charter.md` **v1.2**. It aligns to:
+
+- `docs/PRD.md` – proposed **PRD v1.3**, preserving v1.1 business problems, FR-001–FR-018 and T1–T12; source-validated data acceptance. **PRD v2.0** still requires authorization for proposed production additions.
+- `docs/Technical_Design_Document.md` – **v2.2**, n8n-only architecture, ADR-014, implementation gates G1–G10 and production acceptance P01–P15.
+- `docs/Architecture.md` – **v2.2**, revised Mermaid architecture, source processing, monitoring, approval and evaluation diagrams.
 - `n8n/` – actual credential-reviewed n8n workflow exports **once built**, not to be represented as already created.
 - `testing/` – task-board validation evidence, T1–T12 evaluation ledger, release gate record and P01–P15 proof **when available**.
 - `docs/adr/` or a clearly linked section in the TDD – **ADR-014** architecture trade-off and future reassessment conditions.
@@ -297,6 +314,7 @@ No automatic enterprise rollout is authorized by this charter.
 | Version | Date | Change | Status |
 |---|---|---|---|
 | **v1.0** | 2026-10-25 | Initial two-phase charter, PRD v1.1 business goals, Langflow-first capability mapping, human approval and production gates | Historical baseline |
-| **v1.1** | 2026-10-25 | Rebased implementation to n8n-only; added ADR-014 comparison, n8n deliverables, aligned G1–G10, normalized evaluation requirements, cost/API considerations and revised risks; **did not remove T1–T12 or production approval gates** | **Proposed, sign-off pending** |
+| **v1.1** | 2026-10-25 | Rebased implementation to n8n-only; added ADR-014 comparison, n8n deliverables, aligned G1–G10, normalized evaluation requirements, cost/API considerations and revised risks; **did not remove T1–T12 or production approval gates** | Historical proposed revision |
+| **v1.2** | 2026-10-25 | Source data rebaseline (T10 = 5/3/1/16, T024, Sprint 2/3), T7/T11 evidence gaps, explicit connected-observability and Q1–Q4 submission controls | Proposed, approval pending |
 
 **Integrity rule:** Keep prior signed revisions and GitHub history. New version baselines are proposals until approved; document status cannot be inferred from a download or commit.
