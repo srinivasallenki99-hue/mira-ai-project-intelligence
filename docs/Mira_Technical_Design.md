@@ -1,6 +1,6 @@
 # Mira – Technical Design Document (TDD)
 
-**Version:** 2.1 – n8n Single-Platform Architecture (supersedes platform choice in v2.0)  
+**Version:** 2.2 – n8n Source-Validated Design (supersedes platform choice in v2.0)  
 **Status:** Architecture baseline proposal – NOT implemented or production certified; security, data and reliability gates pending  
 **Date:** October 25, 2026  
 **Project:** Mira – AI-Powered Project Intelligence Assistant  
@@ -8,8 +8,8 @@
 **Delivery Organization:** Nexora Pvt. Ltd.  
 **Document Owner:** AI PM / TPM  
 **Architecture Authority:** Enterprise Technical Architect / CTO  
-**Requirements Baseline:** Mira PRD v1.1; **production change baseline:** PRD v2.0 / CR-PROD-001 approval required  
-**Production Scope:** Approved-on-release proactive monitoring FR-019–FR-026 plus identity, tenancy, audit, deployment, resilience and security controls  
+**Requirements Baseline:** Mira PRD v1.3 (retains original v1.1 FR-001–FR-018 and T1–T12); **production change baseline:** PRD v2.0 / CR-PROD-001 approval required  
+**Production Scope:** Future-only proposal: proactive monitoring FR-019–FR-026, identity, tenancy, audit, deployment, resilience and security controls; **not approved by the capstone**  
 **Implementation Preference:** No-code application configuration where appropriate; managed infrastructure/security integration permitted  
 **Platforms:** n8n (single business + AI orchestrator); OpenAI (version-pinned approved model); GitHub; approved project data storage; production-only portal/gateway, identity, persistence and notification systems  
 **Architecture Diagrams:** [Architecture.md](Architecture.md)  
@@ -131,14 +131,14 @@ Allowed `result_status`: `SUCCESS`, `INSUFFICIENT_DATA`, `VALIDATION_ERROR`, `UN
 
 ## 6. Project data architecture and ingestion
 
-The **original assignment** names `project_description.txt`, `project_timeline.csv` (eight phases), `project_risks.csv` (ten risks), `sample_task_board.csv` (25 tasks) and `eval_mira_inputs.txt` (12 tests). The exact CSV schemas/dates are not in the TDD source baseline and **must be inspected**, not invented.
+The **original assignment** names `project_description.txt`, `project_timeline.csv` (eight phases), `project_risks.csv` (ten risks), `sample_task_board.csv` (25 tasks) and `eval_mira_inputs.txt` (12 tests). The source CSV schemas and dates have been profiled and **must be inspected**, not invented.
 
 | Entity | Canonical fields only when source provides them | Source of truth |
 |---|---|---|
 | Project | project_id, project_name, goals, scope, six-month duration | Project description |
-| Task | task_id, title, status, sprint, due_at, assignee | Task board |
-| Risk | risk_id, category, impact, likelihood/priority if present, mitigation | Risk CSV |
-| Milestone | milestone_id (if supplied), phase, name, due_at, dependencies if documented | Timeline CSV |
+| Task | `task_id, task_name, status, assignee, priority, sprint, due_date, labels, description` | `sample_task_board.csv` |
+| Risk | `risk_id, category, risk_challenge, impact, mitigation_strategy` (no likelihood/score/rank) | `project_risks.csv` |
+| Timeline phase | `phase, phase_name, start_week, end_week, key_activities, milestones_deliverables`; no due date, milestone ID or dependency mapping | `project_timeline.csv` |
 
 ### 6.1 File-based capstone route
 
@@ -150,24 +150,60 @@ Read-only Jira/Trello is an optional later route into the **same normalized sche
 
 Reject unexpected file formats, malformed CSV, missing headers, duplicate task IDs, blank status/IDs, unknown status labels, invalid dates and cross-project joins. Explicitly distinguish absent dependencies from confirmed absence. Keep snapshot `as_of` timestamp and freshness label on reports; no real-time claim for static CSVs. Conflicting upload/API versions block automatic publication pending source-precedence decision. For reproducible tests, pin snapshot IDs and fixed dates.
 
+### 6.3 Verified capstone schemas and test fixtures (source data, not runtime results)
+
+**Actual CSV headers (exact spelling, including underscores):**
+
+```text
+sample_task_board.csv: task_id,task_name,status,assignee,priority,sprint,due_date,labels,description
+project_timeline.csv: phase,phase_name,start_week,end_week,key_activities,milestones_deliverables
+project_risks.csv: risk_id,category,risk_challenge,impact,mitigation_strategy
+```
+
+| Fixture / contract | Expected observed source data | Mandatory control |
+|---|---|---|
+| Board completeness | 25 rows, 25 unique IDs T001–T025 | Assert only in MIRA-001 *test mode*; normal project size is not fixed at 25 |
+| Allowed statuses | `Done`, `In Progress`, `Blocked`, `To Do` | Reject unknown labels; no silent fallback |
+| Board full counts (T10) | `5 Done / 3 In Progress / 1 Blocked / 16 To Do` | n8n deterministic grouping + sum=25 |
+| Sprint 2 (T12) | T004 Done, T005 Done, T006 In Progress | Exact source sprint filter; draft only |
+| Sprint 3 (T5) | T007 In Progress, T008 To Do, T009 To Do, T025 In Progress | Exact source sprint filter; zero other sprint rows |
+| Explicit blocker (T8) | T024 `Security review of AI infrastructure`, `Blocked`, due `2026-05-26`, Sprint 5 | Preserve exact task name and blocker description |
+| Milestones (T11) | 8 phases covering project Weeks 1–24 | Do not create calendar milestones without approved anchor |
+| Registered risks (T7) | R01–R10; no numeric scoring/rank | Three actual IDs, declare illustrative/approved ranking method |
+| Negative context tests | T2/T4/T6/T9 intentionally omit sufficient data | No default ABCDE fixture injection |
+
+**Reference documents:** `ABCDE Ltd Introduction..txt` duplicates the canonical description; the timeline PDF and risk DOCX provide a human-readable perspective but do not override CSV fields without approved reconciliation. The risk DOCX has expanded wording; do not silently treat its prose as the CSV risk register. Dataset is a static sample with due dates 2026-04-07 through 2026-08-04; it is not a live operational board.
+
+### 6.4 Assignment-prose discrepancy (explicitly preserved)
+
+The capstone's narrative *About the sample data* states `3 Done, 3 In Progress, 1 Blocked, rest To Do`, but actual CSV parsing yields `5 Done, 3 In Progress, 1 Blocked, 16 To Do` across 25 records. **T10 explicitly requires the calculation to match actual source data.** Both statements remain documented; do not alter either uploaded source. CR-DATA-001 records the evidence and requires product-owner/QA agreement to the CSV-backed expected outcome prior to G3/G6 approval.
+
+### 6.5 Data and request contracts for deterministic, no-code processing
+
+A normalized request should include: `request_id`, `project_id` (fixed capstone project), `intent`, `source_snapshot_id`, `allow_project_context` (false for vague-input tests), `sprint` (optional), `as_of_date` (optional but required for deadline comparisons), `project_start_date` or `as_of_project_week` (only if supplied/approved), and `output_mode`. The response should include `result_status`, `facts`, `source_refs`, `warnings`, `as_of_date`, `data_freshness_label` (`STATIC_SNAPSHOT` for the capstone), `proposed_recommendations`, and `review_state` (`DRAFT` until human approved).
+
+**n8n node sequence:** approved form/controlled input → Extract From File (CSV) → verify file, required columns/IDs, valid dates and exact status taxonomy → duplicate check (must prove no suppressed records) → per-source version/snapshot envelope → deterministic Filter/Summarize/Date and Time → specialist sub-workflow via Execute Sub-workflow → source and response assertions → human draft review. Use version-specific n8n UI capability checks and proof-of-execution screenshots before claiming the entire sequence requires no custom code.
+
+**Failure behavior:** malformed CSV, unknown statuses, incomplete records, conflicting source snapshots, or invalid dates produce `VALIDATION_ERROR` with cause; missing sprint data or missing project-week calendar anchor produces `INSUFFICIENT_DATA` or clarification as appropriate; non-approved defaults must never be inserted silently. Any retry must not publish or modify external systems without review.
+
 ## 7. Deterministic rules and output assurance
 
 ### 7.1 Task aggregation: MIRA-001 critical proof
 
-Use n8n **Filter/Summarize** on validated task IDs, not an LLM prompt. Verify 25 full-board records with **Done 3, In Progress 3, Blocked 1, To Do 18** from the original CSV; these remain *expected fixtures*, not observed execution results. Use **Count Unique** / duplicate validation and reconcile `sum(group_counts) == total_valid_rows` including blank/unknown-value rejection; avoid accidentally excluding invalid rows in Summarize's grouping options. For Sprint 3/Sprint 2 requests, apply exact sprint filter *before* aggregation and text generation. Calculate any completion percentage with a documented deterministic numerator/denominator.
+Use n8n **Filter/Summarize** on validated task IDs, not an LLM prompt. Verify the **source-profiled fixture**: 25 full-board records with **Done 5, In Progress 3, Blocked 1, To Do 16**; **these are offline verified input expectations, not observed n8n execution results**. Use **Count Unique** / duplicate validation and reconcile `sum(group_counts) == total_valid_rows` including blank/unknown-value rejection; avoid accidentally excluding invalid rows in Summarize's grouping options. For Sprint 3/Sprint 2 requests, apply exact sprint filter *before* aggregation and text generation. Calculate any completion percentage with a documented deterministic numerator/denominator.
 
 ### 7.2 Milestone and date rules
 
-- `BLOCKED`: status explicitly BLOCKED in supplied record.
+- `BLOCKED`: source `status` exactly equals `Blocked` (map to internal `BLOCKED` condition only after validation).
 - `OVERDUE`: incomplete with valid due date earlier than fixed `as_of_date` in project timezone.
-- `UPCOMING`: source milestone due within inclusive `[as_of_date, as_of_date + 14 calendar days]` for T11.
+- `UPCOMING`: determine actual source relative milestone weeks first; only produce a calendar `as_of_date` + 14-day window if an approved project start-date/week-to-date mapping exists. Otherwise ask for a calendar anchor or state that the dataset cannot establish dated upcoming milestones.
 - `AT_RISK`: actual documented dependency or evidence showing material concern; mere proximity to due date is a watch, not a proven risk.
 - Unknown date/dependency/owner: evidence gap, never an invented field.
-- T024 `Security review` must be found in source before asserting it is blocked.
+- T024 `Security review of AI infrastructure` must be found in source with exact status `Blocked` before asserting it is blocked.
 
 ### 7.3 Risk ranking
 
-Prefer registered priority/severity. If no authoritative ranking exists, define a **transparent deterministic derived policy** and fixed tie-breaker or request human priority definition. T7 returns actual risk IDs only.
+The actual `project_risks.csv` contains **no** `priority`, `likelihood`, `severity`, probability or score field; its `impact` values are narrative text. For T7, return three **real source risk IDs** selected under an **explicitly stated illustrative rule** (e.g., first three register records R01–R03, explicitly *not ranked*) or request a business-approved impact/likelihood policy and then label the computed order as **proposed**. Do not present source order as an objectively ranked top three. A numeric score cannot be extracted from descriptive impact prose without an approved rubric. Record the selected rule in the test fixture and output provenance.
 
 ### 7.4 Generation and assurance
 
@@ -240,6 +276,9 @@ Subject to sponsor approval: ≥99% scheduled-run success, 100% detection of syn
 
 ## 12. Observability, evaluation and economics
 
+**Mandatory capstone integration:** Wire a concrete evaluation/observability tool to n8n and retain actual trace/evaluation screenshots for execution of T1–T12 (for example, compatible n8n Evaluation capabilities or a supported dedicated tracing provider). n8n execution history alone supports debugging but does not automatically prove that the required **evaluation/observability tool connection** was completed. Validate availability, version/edition, secure transport and trace redaction at G1/G6; record a failed/blocked requirement if the connection has not been tested. An external telemetry provider does not change the n8n-only orchestration decision.
+
+
 **Baseline:** use n8n **Executions** (success/failure/step-level details subject to retention and plan), error workflows/notifications, and n8n **Evaluations** for known datasets where available. Preserve a separate GitHub T1–T12 evidence ledger with inputs, source version, expected and actual assertions, defect owner and reviewer. Persist cross-workflow `request_id` / execution IDs because child workflows are independent units. An n8n execution log is not an enterprise security audit or proof of end-user notification delivery.
 
 **Model telemetry:** record approved model ID, prompt version, latency, actual input/output token usage where the node/provider exposes it, retries, LLM calls per request, and provider unit pricing effective at test time. If usage metadata is missing, report estimate separately and do not represent it as measured spend. LangWatch and LangSmith may be assessed as **optional integrations**, with supported-runtime/no-code and privacy gate; do not call them deployed or required.
@@ -254,7 +293,7 @@ Subject to sponsor approval: ≥99% scheduled-run success, 100% detection of syn
 |---|---|---|
 | G1 – Platform | Provision n8n Cloud trial/approved host, secured OpenAI credential; export/import smoke test | Capstone |
 | G2 – Source data | Inspect real five assignment files, CSV headers and row counts; validate data classification | Capstone |
-| G3 – **MIRA-001** | Form CSV → extraction → validation → exact 25, counts 3/3/1/18, T024 and sprint filter, no LLM arithmetic | **Blocking capstone** |
+| G3 – **MIRA-001** | Form CSV → extraction → validation → exact 25, counts 5/3/1/16, T024 and sprint filter, no LLM arithmetic | **Blocking capstone** |
 | G4 – Specialists | Four named n8n sub-workflows produce source-grounded contracts and insufficiency statuses | Capstone |
 | G5 – Router/HITL | Deterministic dispatch + fallback handling; manual PM/TPM review of drafts | Capstone |
 | G6 – Test/eval | Execute T1–T12 with no-data isolation; n8n executions/evaluation results and model usage/cost evidence | Capstone |
@@ -306,7 +345,7 @@ Store `n8n/Mira_00_Orchestrator.json` through `n8n/Mira_07_Evaluation_Runner.jso
 | ADR-011 | Make.com/hosted Langflow monitoring | **Superseded**; n8n Schedule Trigger and integrated monitoring |
 | ADR-012 | Alert register and lifecycle | **Retained, release-gated** |
 | ADR-013 | Internal alerts bypass publication approval | **Retained, policy approval pending** |
-| **ADR-014** | **Choose n8n-only over Langflow-only or hybrid for Mira implementation baseline** | **Proposed approval; v2.1 target selected** |
+| **ADR-014** | **Choose n8n-only over Langflow-only or hybrid for Mira implementation baseline** | **Proposed approval; v2.2 source-validated baseline selected** |
 
 ### 15.1 ADR-014 — Why n8n-only for Mira (new)
 
@@ -364,22 +403,26 @@ The architecture **covers the required test scenarios by design**, not by demons
 | **T2** – “We want to build a chatbot” | Planner | Only one-sentence user request; do not silently inject ABCDE context | INSUFFICIENT_DATA; request scope, timeline and team size | No full implementation plan |
 | **T3** – ABCDE risk assessment | Risk | Project description + project_risks.csv | Categorized logistics/AI-relevant risks with documented impacts and mitigations; source IDs | No unrelated generic risks presented as source facts |
 | **T4** – “New project starting soon” | Risk | Only vague request; no project risk file specified | INSUFFICIENT_DATA; ask for project details | No invented project-specific risk register |
-| **T5** – Sprint 3 weekly status | Status | sample_task_board.csv filtered exactly to Sprint 3 | Real task names and status groups; accurate Sprint 3 counts | No cross-sprint leakage or invented tasks |
+| **T5** – Sprint 3 weekly status | Status | sample_task_board.csv filtered exactly to Sprint 3 | T007/T025 In Progress; T008/T009 To Do; exactly four Sprint 3 records | No cross-sprint leakage or invented tasks |
 | **T6** – “Things are going fine” | Status | No task board provided for that request | Explicitly state no task data; request board/sprint | No fabricated progress, tasks or percentages |
-| **T7** – Top 3 ABCDE risks | Risk | project_risks.csv | Return three actual risk records with IDs and transparent source ranking or declared derived priority | No newly fabricated risks; do not claim unsupported ranking certainty |
-| **T8** – Blocked/at-risk tasks | Tracker | sample_task_board.csv + as-of date | Identify T024 Security review as BLOCKED; check other deadlines against actual statuses | Do not invent due dates, dependencies or blocker cause |
+| **T7** – Top 3 ABCDE risks | Risk | project_risks.csv | Three actual risk IDs; disclose that register has no source rank; use an explicitly illustrative or approved proposed selection method | No newly fabricated risks; do not claim unsupported ranking certainty |
+| **T8** – Blocked/at-risk tasks | Tracker | sample_task_board.csv + explicit as-of date | T024 Security review of AI infrastructure source `Blocked`; evaluate dates against historical snapshot | Do not invent due dates, dependencies or blocker cause |
 | **T9** – Two-week project, no further detail | Planner | Only two-week duration | INSUFFICIENT_DATA; ask for scope, goals and deliverables | No detailed plan based on duration alone |
-| **T10** – Count current tasks | Status | Full sample_task_board.csv, no sprint filtering | 25 total: 3 Done, 3 In Progress, 18 To Do, 1 Blocked; verify against CSV | Counts reconcile; no unknown statuses silently coerced |
-| **T11** – Upcoming milestones in 2 weeks | Tracker | project_timeline.csv + explicit as-of date | Actual milestone names and dates within inclusive [as-of, as-of + 14 days] | No invented milestones; empty truthful result if none |
-| **T12** – Sprint 2 stakeholder email | Status / email mode | Only Sprint 2 tasks from sample_task_board.csv | Professional draft with Sprint 2-only facts, issues and next actions when documented | No Sprint 3+ tasks; no automatic sending |
+| **T10** – Count snapshot tasks | Status | Full sample_task_board.csv, no sprint filtering | 25 total: 5 Done, 3 In Progress, 16 To Do, 1 Blocked, from source-profiling fixture; prove in workflow | Counts reconcile; no unknown statuses silently coerced |
+| **T11** – Upcoming milestones in 2 weeks | Tracker | project_timeline.csv + approved project start-date or reference project week (absent in dataset) | Identify week-based candidate milestones only when anchored; otherwise ask for anchor, no invented dates | No invented milestones; empty truthful result if none |
+| **T12** – Sprint 2 stakeholder email | Status / email mode | Only Sprint 2 tasks from sample_task_board.csv | Professional draft: T004/T005 Done and T006 In Progress; no Sprint 3+ activity or automated send | No Sprint 3+ tasks; no automatic sending |
 
 ### 17.1 Test execution controls
 
-- **Dataset fixtures:** Preserve the original five supplied files as immutable baseline inputs. Do not substitute demonstration examples for test evidence. The uploaded assignment text lists the files but does not contain their complete CSV records.
+**Coursework evidence checklist (Q1–Q4):** Q1 needs 2–3 use cases, individual pains/agent solutions/inputs/outputs/three success metrics/knowledge base. Q2 needs implementable architecture, working core + selected milestone extension, connected observability, all 12 actual test runs, cost-per-plan and at least three measured evaluation metrics with a 1–2-page build report. Q3 is the governed Mira Program Charter. Q4 is a one-page reflection on observed traces, proposed improvements, privacy and a *proposed* ten-PM/TPM rollout. Export scrubbed n8n JSON to GitHub alongside README, canvas/output/trace screenshots and the repository submission link. Maintain clear implementation evidence versus design proposals.
+
+
+
+- **Dataset fixtures:** Preserve the five canonical original supplied files as immutable baseline inputs. Do not substitute demonstration examples for test evidence. The supplied ZIP contains the original files; the schemas and task counts were verified through offline profiling (not through n8n execution).
 - **No-data isolation:** For T2, T4, T6 and T9, suppress automatic use of ABCDE files unless explicitly referenced by the user. Otherwise a vague request could incorrectly appear sufficiently grounded.
 - **Deterministic assertions:** T5 and T10 require programmatic/no-code exact aggregations. T8 and T11 require explicit as-of-date logic. A plausible-looking LLM answer is not enough.
 - **Risk priority ambiguity:** If `project_risks.csv` provides no authoritative ranking, define and document a transparent derived ranking with a fixed tie-breaker before accepting T7. Never assert that an arbitrary top three are source-ranked.
-- **Temporal fixture:** T11 must use a specified as-of date that matches the test fixture; a changing system date will make the test nonreproducible.
+- **Temporal fixture:** T11 needs an authorized project calendar anchor (`project_start_date`) or project-week reference **in addition to any** `as_of_date`; if missing, the correct test behavior is to ask for clarification, not to invent milestones due within the next two calendar weeks.
 - **Source provenance:** Preserve identifiers and source names for tasks, risks, timeline rows and planning claims; flag any unavailable field.
 - **Approval separation:** T12 tests a **draft**, not sending. PM approval occurs before distribution and is independently evidenced.
 - **Execution ledger:** Log test ID, prompt, data version, flow/prompt/model version, actual output, checks passed, failed assertions, trace link, defect and reviewer decision.
@@ -539,6 +582,10 @@ No production acceptance may be inferred from design documentation alone. All P-
 **Disposition:** n8n-only selected as proposed platform baseline, not proof of production. ADR-014 and PRD extension approvals, G1–G7 data/test evidence, P01–P15 security/operational evidence and named owners are required before rollout.
 
 ## 29. Version change log and retained design
+
+**v2.2 (2026-10-25):** Reconciled source ZIP, exact task/risk/timeline CSV schemas, 25-row `5/3/1/16` fixture, complete T024 label and actual source status, Sprint 2/3 record cases, unranked risk rule, missing timeline calendar anchor, snapshot semantics, and explicit negative-test context isolation. Aligned to PRD v1.3, Architecture v2.2 and Charter v1.2. **No capstone scope expansion, agent removal, new FR mandate, or production certification.**
+
+
 
 - **v1.1–v1.4:** Four logical specialist capabilities, grounded data controls, HITL, proactive-alert concept and T1–T12 baseline.
 - **v2.0:** Production-target portal/auth, versioned persistence, resilient execution, secure ingress/egress, audited approval, CI/CD, alert lifecycle and P01–P15.
