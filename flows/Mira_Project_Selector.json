@@ -1,0 +1,88 @@
+{
+  "name": "Mira_Project Selector",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "\n{\n  \"action\": \"list\",\n  \"project_name\": \"ABCDE Ltd\",\n  \"snapshot_id\": \"\",\n  \"session_id\": \"\"\n}\n"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "3b40bfcd-10f0-4217-86bb-93556ac0a24e",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "REMAP_DATA_TABLE_ID",
+          "mode": "list",
+          "cachedResultName": "MIRA_Project_Data"
+        },
+        "matchType": "allConditions",
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        0
+      ],
+      "id": "1ffc5856-df23-4fc1-87f4-74bea772a313",
+      "name": "Get Available Project Rows"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n/**\n * MIRA_09_ProjectSelector\n *\n * Lists projects and selects validated snapshots.\n * No hardcoded snapshot IDs.\n */\n\nconst rows = $input.all().map(i => i.json);\n\nconst request =\n  $('When Executed by Another Workflow').first().json || {};\n\nconst action = String(request.action || \"list\")\n  .trim().toLowerCase();\n\nif (![\"list\", \"select\"].includes(action)) {\n  return [{\n    json: {\n      status: \"invalid_action\",\n      project_count: 0,\n      selected_project: null,\n      projects: [],\n      message: \"Action must be list or select.\"\n    }\n  }];\n}\n\nconst requestedName = String(request.project_name || \"\")\n  .trim().toLowerCase();\n\nconst requestedSnapshot = String(request.snapshot_id || \"\")\n  .trim();\n\n// Required source documents for Mira's core capabilities.\nconst requiredKinds = [\n  \"project_description\",\n  \"timeline\",\n  \"risks\",\n  \"task_board\"\n];\n\nconst snapshots = new Map();\n\nfunction parseJSON(value) {\n  if (typeof value !== \"string\") return value || {};\n  try {\n    return JSON.parse(value);\n  } catch {\n    return {};\n  }\n}\n\nfor (const row of rows) {\n  const id = String(row.snapshot_id || \"\").trim();\n  if (!id) continue;\n\n  if (!snapshots.has(id)) {\n    snapshots.set(id, {\n      snapshot_id: id,\n      project_name: \"\",\n      file_names: new Set(),\n      document_types: new Set(),\n      record_count: 0,\n      latest_upload: \"\",\n      validation_passed: false,\n      validation_observed: false\n    });\n  }\n\n  const s = snapshots.get(id);\n  const report = parseJSON(row.validation_report);\n\n  const name =\n    String(row.project_name || report.project_name || \"\")\n      .trim();\n\n  if (name && !s.project_name) {\n    s.project_name = name;\n  }\n\n  const file = String(row.file_name || \"\").trim();\n  const kind = String(row.doc_kind || \"\").trim();\n\n  if (file) s.file_names.add(file);\n  if (kind) s.document_types.add(kind);\n\n  s.record_count++;\n\n  const uploaded = String(row.uploaded_at || \"\");\n\n  if (uploaded > s.latest_upload) {\n    s.latest_upload = uploaded;\n  }\n\n  if (typeof report.validation_passed === \"boolean\") {\n    s.validation_observed = true;\n\n    if (report.validation_passed === true &&\n        report.ready_for_mira === true) {\n      s.validation_passed = true;\n    }\n  }\n}\n\nconst snapshotList = Array.from(snapshots.values())\n  .map(s => {\n    const missing = requiredKinds.filter(\n      kind => !s.document_types.has(kind)\n    );\n\n    return {\n      project_name: s.project_name || null,\n      snapshot_id: s.snapshot_id,\n      document_count: s.file_names.size,\n      document_types: Array.from(s.document_types),\n      missing_document_types: missing,\n      record_count: s.record_count,\n      latest_upload: s.latest_upload,\n      validation_passed: s.validation_passed,\n      validation_observed: s.validation_observed,\n      complete: missing.length === 0,\n      ready:\n        missing.length === 0 &&\n        s.validation_passed\n    };\n  })\n  .sort((a, b) =>\n    b.latest_upload.localeCompare(a.latest_upload)\n  );\n\n// Group snapshots into projects using verified names.\nconst groups = new Map();\n\nfor (const snapshot of snapshotList) {\n  // If a name is missing, retain a separate identity.\n  const key = snapshot.project_name\n    ? snapshot.project_name.toLowerCase()\n    : \"snapshot:\" + snapshot.snapshot_id;\n\n  if (!groups.has(key)) {\n    groups.set(key, {\n      project_name: snapshot.project_name,\n      snapshots: []\n    });\n  }\n\n  groups.get(key).snapshots.push(snapshot);\n}\n\nconst projects = Array.from(groups.values())\n  .map(group => {\n    const readySnapshots = group.snapshots\n      .filter(s => s.ready);\n\n    return {\n      project_name: group.project_name,\n      snapshot_count: group.snapshots.length,\n      ready_snapshot_count: readySnapshots.length,\n      latest_ready_snapshot_id:\n        readySnapshots[0]?.snapshot_id || null,\n      snapshots: group.snapshots\n    };\n  });\n\nlet selected = null;\nlet status = projects.length\n  ? \"available\"\n  : \"no_projects\";\n\nif (action === \"select\") {\n  let matches = [];\n\n  if (requestedSnapshot) {\n    matches = snapshotList.filter(\n      s => s.snapshot_id === requestedSnapshot\n    );\n  } else if (requestedName) {\n    matches = snapshotList.filter(\n      s => s.project_name &&\n      s.project_name.toLowerCase() === requestedName\n    );\n  }\n\n  const readyMatches = matches.filter(s => s.ready);\n\n  if (readyMatches.length) {\n    selected = readyMatches[0];\n    status = \"selected\";\n  } else {\n    status = matches.length\n      ? \"not_ready\"\n      : \"selection_required\";\n  }\n}\n\nreturn [{\n  json: {\n    status,\n    project_count: projects.length,\n    snapshot_count: snapshotList.length,\n    selected_project: selected,\n    projects\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "9c1119ff-7eac-434b-b02c-b78792d634b4",
+      "name": "Build Project List"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Get Available Project Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Available Project Rows": {
+      "main": [
+        [
+          {
+            "node": "Build Project List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "nodeGroups": [],
+  "tags": []
+}
