@@ -30,5 +30,16 @@ A previously recorded evaluation batch reported **12/12 predefined scenarios pas
 
 Do not publish real reviewer addresses, private project data, credentials, service URLs, webhook links, or execution logs.
 
+### Workflow Export and Security Notice
+
+The workflows in this directory are sanitized exports of the MIRA capstone implementation.
+
+The original workflow architecture, node configurations, routing logic, agent prompts, validation rules, and evaluation logic have been retained wherever possible.
+
+Sensitive credentials, private endpoints, instance-specific resource identifiers, and confidential execution data have been removed or replaced.
+
+To reproduce the workflows, import the JSON files into an authorized n8n environment, configure the required credentials, reconnect environment-specific subworkflow and Data Table references, and execute the documented baseline tests.
+
+The exports demonstrate the implemented design but are not guaranteed to run without environment configuration. Production security and reliability controls require separate validation.
 ## Licensing
 No license is included. All rights reserved unless a license is added by the repository owner.
