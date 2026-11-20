@@ -1,0 +1,940 @@
+{
+  "name": "Mira_03_Status_Reporter_Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "project_context"
+            },
+            {
+              "name": "snapshot_id"
+            },
+            {
+              "name": "request_text"
+            },
+            {
+              "name": "trace_id"
+            },
+            {
+              "name": "parent_span_id"
+            },
+            {
+              "name": "test_case_id"
+            }
+          ]
+        }
+      },
+      "id": "0ae0f588-681b-415b-ad27-24078fbe9163",
+      "name": "When Orchestrator Requests Status",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        608
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const hex = n => { let s = ''; for (let i = 0; i < n; i++) { s += Math.floor(Math.random() * 16).toString(16); } return s; };\nconst hexRe32 = /^[0-9a-f]{32}$/i;\nconst hexRe16 = /^[0-9a-f]{16}$/i;\nreturn $input.all().map(item => {\n  const j = item.json;\n  const traceId = hexRe32.test(String(j.trace_id || '')) ? String(j.trace_id).toLowerCase() : hex(32);\n  const parentId = hexRe16.test(String(j.parent_span_id || '')) ? String(j.parent_span_id).toLowerCase() : '';\n  return { json: Object.assign({}, j, { trace_id: traceId, parent_span_id: parentId, span_id: hex(16), test_case_id: j.test_case_id || '', start_time_ns: String(Date.now()) + '000000' }) };\n});"
+      },
+      "id": "3dffcfed-26c9-4c69-9b84-6eea4fdb0ec5",
+      "name": "Capture Trace Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -624,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ctx",
+              "leftValue": "={{ String($json.project_context || \"\").trim() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "18b99f26-2af2-469d-a3ee-627baf20ed06",
+      "name": "Has Project Context?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -320,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\n/**\n * MIRA — Parse Status Output\n * Version: 2.7\n *\n * n8n Code node\n * Mode: Run Once for All Items\n *\n * Preserves canonical task reconciliation,\n * blocker tracking, sprint isolation,\n * source references, and legacy adapters.\n *\n * Adds risk-source diagnostics and avoids\n * unsupported approval/authorization wording.\n */\n\nconst trig =\n  $('When Orchestrator Requests Status').first().json || {};\n\nconst item = $input.first()?.json || {};\n\nconst str = x => String(x ?? '').trim();\nconst arr = x => Array.isArray(x) ? x : [];\nconst obj = x =>\n  x && typeof x === 'object' && !Array.isArray(x)\n    ? x\n    : {};\n\nconst unique = values => [...new Set(values)];\n\nconst base = {\n  agent: 'status',\n  snapshot_id: str(trig.snapshot_id),\n  generated_at: new Date().toISOString(),\n  trace_id: str(trig.trace_id)\n};\n\nconst emptyCounts = {\n  total: 0,\n  completed: 0,\n  in_progress: 0,\n  not_started: 0,\n  blocked: 0\n};\n\nfunction failure(message) {\n  return [{\n    json: {\n      ...base,\n      status: 'error',\n      error_detail: message,\n      tasks: [],\n      task_counts: { ...emptyCounts },\n      data_gaps: [message],\n      task_counts_validated: false,\n      task_counts_reconciled: false,\n      validation_status: 'FAILED'\n    }\n  }];\n}\n\n// ==================================================\n// 1. HANDLE AGENT ERRORS\n// ==================================================\n\nif (item.error) {\n  return failure(str(item.error.message || item.error));\n}\n\n// ==================================================\n// 2. PARSE STRUCTURED AGENT OUTPUT\n// ==================================================\n\nlet parsed = item.output ?? item.text ?? item;\n\nif (typeof parsed === 'string') {\n  const clean = parsed.trim()\n    .replace(/^```(?:json)?\\s*/i, '')\n    .replace(/```\\s*$/i, '');\n\n  try {\n    parsed = JSON.parse(clean);\n  } catch {\n    return failure('AI Agent returned invalid JSON.');\n  }\n}\n\nif (\n  parsed?.output &&\n  typeof parsed.output === 'object' &&\n  !Array.isArray(parsed.output)\n) {\n  parsed = parsed.output;\n}\n\nif (\n  !parsed ||\n  typeof parsed !== 'object' ||\n  Array.isArray(parsed)\n) {\n  return failure(\n    'AI Agent returned no structured status report.'\n  );\n}\n\n// ==================================================\n// 3. RETRIEVE SOURCE TASKS\n// ==================================================\n\nfunction normalizeTask(t) {\n  const x = obj(t);\n\n  return {\n    task_id: str(x.task_id),\n    task_name: str(x.task_name ?? x.name),\n    status: str(x.status),\n    assignee: str(x.assignee ?? x.owner),\n    sprint: str(x.sprint),\n    due_date: str(x.due_date),\n    description: str(\n      x.description ??\n      x.blocker_reason ??\n      x.notes\n    )\n  };\n}\n\nfunction getSourceTasks(context) {\n  let data = context;\n\n  if (typeof data === 'string') {\n    try {\n      data = JSON.parse(data);\n    } catch {\n      // Keep formatted text representation.\n    }\n  }\n\n  if (data && typeof data === 'object') {\n    const root = obj(data);\n\n    const file = arr(root.files).find(f =>\n      str(f.file_name ?? f.name).toLowerCase() ===\n      'sample_task_board.csv'\n    );\n\n    if (file) {\n      let content = file.content;\n\n      if (typeof content === 'string') {\n        try {\n          content = JSON.parse(content);\n        } catch {\n          // Try formatted text below.\n        }\n      }\n\n      if (Array.isArray(content)) {\n        return content.map(normalizeTask);\n      }\n\n      if (Array.isArray(content?.rows)) {\n        return content.rows.map(normalizeTask);\n      }\n    }\n  }\n\n  const textContext =\n    typeof context === 'string' ? context : '';\n\n  const match = textContext.match(\n    /### FILE:\\s*sample_task_board\\.csv\\s*\\(task_board\\)\\s*\\n([\\s\\S]*?)(?=\\n### FILE:|$)/i\n  );\n\n  if (!match) return [];\n\n  return match[1]\n    .split(/\\r?\\n/)\n    .filter(line => /^T\\d+\\s*\\|/.test(line.trim()))\n    .map(line => {\n      const c = line.split('|').map(x => x.trim());\n\n      return normalizeTask({\n        task_id: c[0],\n        task_name: c[1],\n        status: c[2],\n        assignee: c[3],\n        sprint: c[5],\n        due_date: c[6],\n        description: c.slice(7).join(' | ')\n      });\n    });\n}\n\nconst allTasks = getSourceTasks(\n  trig.project_context\n);\n\nif (!base.snapshot_id || !allTasks.length) {\n  return failure(\n    'Sample task-board records are unavailable in the supplied project context.'\n  );\n}\n\n// ==================================================\n// 4. DETERMINE REPORTING SCOPE\n// ==================================================\n\nconst request = str(trig.request_text);\n\nconst requestedSprint =\n  request.match(/\\bSprint\\s+(\\d+)\\b/i);\n\nconst sprint = requestedSprint\n  ? `Sprint ${requestedSprint[1]}`\n  : '';\n\nconst isProjectWide = !sprint;\n\nconst selected = sprint\n  ? allTasks.filter(t =>\n      t.sprint.toLowerCase() === sprint.toLowerCase()\n    )\n  : allTasks;\n\nif (!selected.length) {\n  return failure(\n    sprint\n      ? `No source tasks match ${sprint}.`\n      : 'No task records are available.'\n  );\n}\n\nconst modelSprint = str(parsed.sprint);\n\nconst normalizedModelSprint =\n  modelSprint.toLowerCase();\n\nconst projectWideAliases = new Set([\n  '',\n  'all',\n  'all sprints',\n  'all project sprints',\n  'project',\n  'project-wide',\n  'project wide',\n  'full project'\n]);\n\nconst modelScopeMismatch = Boolean(\n  sprint\n    ? normalizedModelSprint !== '' &&\n      normalizedModelSprint !== sprint.toLowerCase()\n    : !projectWideAliases.has(normalizedModelSprint)\n);\n\n// ==================================================\n// 5. VALIDATE SOURCE TASK RECORDS\n// ==================================================\n\nconst allowedStatuses = [\n  'Done',\n  'In Progress',\n  'To Do',\n  'Blocked'\n];\n\nconst taskIds = selected.map(t => t.task_id);\n\nconst hasDuplicateIds =\n  new Set(taskIds).size !== taskIds.length;\n\nif (hasDuplicateIds) {\n  return failure(\n    'Duplicate task IDs found in source records.'\n  );\n}\n\nconst invalidTasks = selected.filter(t =>\n  !t.task_id ||\n  !t.task_name ||\n  !allowedStatuses.includes(t.status)\n);\n\nif (invalidTasks.length) {\n  return failure(\n    'Source task records contain missing identities or unsupported statuses.'\n  );\n}\n\n// ==================================================\n// 6. BUILD CANONICAL TASKS AND COUNTS\n// ==================================================\n\nconst tasks = selected.map(t => ({\n  task_id: t.task_id,\n  name: t.task_name,\n  status: t.status,\n  owner: t.assignee || null,\n  sprint: t.sprint || null,\n  due_date: t.due_date || null,\n  evidence: `sample_task_board.csv#${t.task_id}`\n}));\n\nconst count = status =>\n  tasks.filter(t => t.status === status).length;\n\nconst task_counts = {\n  total: tasks.length,\n  completed: count('Done'),\n  in_progress: count('In Progress'),\n  not_started: count('To Do'),\n  blocked: count('Blocked')\n};\n\nconst status_counts = {\n  Done: task_counts.completed,\n  'In Progress': task_counts.in_progress,\n  'To Do': task_counts.not_started,\n  Blocked: task_counts.blocked\n};\n\nconst countsMatch =\n  task_counts.total ===\n    task_counts.completed +\n    task_counts.in_progress +\n    task_counts.not_started +\n    task_counts.blocked;\n\n// ==================================================\n// 7. BUILD CANONICAL BLOCKERS\n// ==================================================\n\nconst blockedSourceTasks = selected.filter(\n  t => t.status === 'Blocked'\n);\n\nconst blockers = blockedSourceTasks.map(t => {\n  const parts = [\n    `${t.task_id} — ${t.task_name}`,\n    'Status: Blocked'\n  ];\n\n  if (t.assignee) {\n    parts.push(`Assignee: ${t.assignee}`);\n  }\n\n  if (t.due_date) {\n    parts.push(\n      `Recorded due date: ${t.due_date}`\n    );\n  }\n\n  if (t.description) {\n    parts.push(\n      `Recorded details: ${t.description}`\n    );\n  }\n\n  parts.push(\n    `Source: sample_task_board.csv#${t.task_id}`\n  );\n\n  return parts.join('; ');\n});\n\nconst blockerIds = blockedSourceTasks.map(\n  t => t.task_id\n);\n\nconst blockersMatch =\n  blockers.length === task_counts.blocked &&\n  new Set(blockerIds).size === blockerIds.length;\n\n// ==================================================\n// 8. BUILD GROUNDED TASK SUMMARY\n// ==================================================\n\nconst canonicalSummary =\n  `${sprint || 'Project-wide'} task summary: ` +\n  `${task_counts.total} total, ` +\n  `${task_counts.completed} Done, ` +\n  `${task_counts.in_progress} In Progress, ` +\n  `${task_counts.not_started} To Do, ` +\n  `${task_counts.blocked} Blocked.`;\n\nconst summary = canonicalSummary;\n\n// ==================================================\n// 9. VALIDATE MODEL TASK REFERENCES\n// ==================================================\n\nconst selectedIds = new Set(\n  selected.map(t => t.task_id.toUpperCase())\n);\n\nconst taskIdPattern = /\\bT\\d{3,}\\b/gi;\n\nfunction referencesOnlySelectedTasks(value) {\n  const ids =\n    str(value).match(taskIdPattern) || [];\n\n  return ids.every(id =>\n    selectedIds.has(id.toUpperCase())\n  );\n}\n\nfunction scopedStrings(values) {\n  return arr(values)\n    .filter(x => typeof x === 'string')\n    .map(str)\n    .filter(Boolean)\n    .filter(referencesOnlySelectedTasks);\n}\n\nconst highlights = scopedStrings(\n  parsed.highlights\n);\n\n// ==================================================\n// 10. EXTRACT RISK REGISTER\n// ==================================================\n\nfunction parseDelimitedLine(line, delimiter) {\n  const values = [];\n\n  let field = '';\n  let quoted = false;\n\n  for (let i = 0; i < line.length; i++) {\n    const ch = line[i];\n\n    if (ch === '\"') {\n      if (quoted && line[i + 1] === '\"') {\n        field += '\"';\n        i++;\n      } else {\n        quoted = !quoted;\n      }\n    } else if (ch === delimiter && !quoted) {\n      values.push(field.trim());\n      field = '';\n    } else {\n      field += ch;\n    }\n  }\n\n  values.push(field.trim());\n\n  return values;\n}\n\nfunction getRiskRecords(context) {\n  let data = context;\n\n  if (typeof data === 'string') {\n    try {\n      data = JSON.parse(data);\n    } catch {\n      // Formatted source text.\n    }\n  }\n\n  let content;\n\n  if (data && typeof data === 'object') {\n    const root = obj(data);\n\n    const file = arr(root.files).find(f =>\n      str(f.file_name ?? f.name)\n        .toLowerCase() === 'project_risks.csv'\n    );\n\n    if (file) {\n      content =\n        file.content ??\n        file.rows ??\n        file.records;\n    }\n  }\n\n  if (\n    content == null &&\n    typeof context === 'string'\n  ) {\n    const section = context.match(\n      /### FILE:\\s*project_risks\\.csv(?:\\s*\\([^\\n)]*\\))?\\s*\\n([\\s\\S]*?)(?=\\n### FILE:|$)/i\n    );\n\n    if (section) {\n      content = section[1];\n    }\n  }\n\n  if (typeof content === 'string') {\n    try {\n      content = JSON.parse(content);\n    } catch {\n      // CSV or pipe-delimited source.\n    }\n  }\n\n  if (\n    content &&\n    typeof content === 'object' &&\n    !Array.isArray(content)\n  ) {\n    content =\n      content.rows ??\n      content.records ??\n      content.risks ??\n      content;\n  }\n\n  let rows = [];\n\n  if (Array.isArray(content)) {\n    rows = content;\n  } else if (typeof content === 'string') {\n    const lines = content\n      .split(/\\r?\\n/)\n      .map(x => x.trim())\n      .filter(Boolean)\n      .filter(\n        x => !/^\\|?\\s*[-:| ]+\\s*\\|?$/.test(x)\n      );\n\n    if (!lines.length) {\n      return [];\n    }\n\n    const pipe = lines.some(line =>\n      /^\\|?\\s*R\\d+\\s*\\|/i.test(line)\n    );\n\n    const delimiter = pipe ? '|' : ',';\n\n    const cells = lines.map(line => {\n      const normalized = pipe\n        ? line\n            .replace(/^\\|\\s*/, '')\n            .replace(/\\s*\\|$/, '')\n        : line;\n\n      return parseDelimitedLine(\n        normalized,\n        delimiter\n      );\n    });\n\n    const headers = cells[0].map(h =>\n      h.toLowerCase()\n        .replace(/[^a-z0-9]+/g, '_')\n        .replace(/^_|_$/g, '')\n    );\n\n    const hasHeader = headers.some(h =>\n      ['risk_id', 'riskid', 'id'].includes(h)\n    );\n\n    rows = (\n      hasHeader ? cells.slice(1) : cells\n    ).map(c => {\n      const record = {};\n\n      for (let i = 0; i < c.length; i++) {\n        record[\n          hasHeader\n            ? (headers[i] || `field_${i + 1}`)\n            : `field_${i + 1}`\n        ] = c[i];\n      }\n\n      if (!hasHeader) {\n        record.risk_id = c.find(v =>\n          /^R\\d+$/i.test(str(v))\n        );\n      }\n\n      return record;\n    });\n  }\n\n  const result = [];\n  const seen = new Set();\n\n  for (const record of rows) {\n    const r = obj(record);\n\n    const id = str(\n      r.risk_id ??\n      r.riskid ??\n      r.id\n    ).toUpperCase();\n\n    if (!/^R\\d+$/.test(id) || seen.has(id)) {\n      continue;\n    }\n\n    seen.add(id);\n\n    const details = Object.entries(r)\n      .filter(([key, value]) =>\n        !['risk_id', 'riskid', 'id']\n          .includes(key) &&\n        value !== null &&\n        value !== undefined &&\n        str(value)\n      )\n      .map(([key, value]) =>\n        `${key}: ${str(value)}`\n      );\n\n    result.push(\n      `${id}; ${details.join('; ')}; ` +\n      `Source: project_risks.csv#${id}`\n    );\n  }\n\n  return result;\n}\n\n// ==================================================\n// 10A. RISK-SOURCE DIAGNOSTICS\n// ==================================================\n\nconst rawContext = trig.project_context;\n\nlet structuredContext = rawContext;\n\nif (typeof structuredContext === 'string') {\n  try {\n    structuredContext = JSON.parse(\n      structuredContext\n    );\n  } catch {\n    // Preserve text form.\n  }\n}\n\nconst contextFiles =\n  arr(obj(structuredContext).files);\n\nconst contextFileNames = contextFiles.map(f =>\n  str(f.file_name ?? f.name)\n);\n\nconst contextText =\n  typeof rawContext === 'string'\n    ? rawContext\n    : JSON.stringify(rawContext ?? {});\n\nconst contextHasRiskFilename =\n  /project_risks\\.csv/i.test(contextText);\n\nconst contextHasRiskIds =\n  /\\bR\\d{1,3}\\b/i.test(contextText);\n\nconst contextRiskFiles =\n  contextFileNames.filter(name =>\n    /risk/i.test(name)\n  );\n\nconst canonicalRisks = getRiskRecords(\n  trig.project_context\n);\n\n// Do not infer sprint-specific risks from\n// project-wide records without direct evidence.\n\nconst risks = isProjectWide\n  ? unique(canonicalRisks)\n  : [];\n\nconst riskRegisterUnavailable =\n  isProjectWide && risks.length === 0;\n\nconst riskExtractionStatus =\n  !isProjectWide\n    ? 'not_applicable_sprint_scope'\n    : risks.length > 0\n      ? 'extracted'\n      : contextHasRiskFilename\n        ? 'source_detected_records_not_parsed'\n        : 'risk_source_not_in_reporter_context';\n\n// ==================================================\n// 11. SOURCE REFERENCES\n// ==================================================\n\nconst sourceRefs = unique([\n  'sample_task_board.csv',\n\n  ...(risks.length\n    ? ['project_risks.csv']\n    : []),\n\n  ...arr(parsed.source_references)\n    .filter(x => typeof x === 'string')\n    .map(str)\n    .filter(Boolean)\n]);\n\n// ==================================================\n// 12. DATA GAPS AND MODEL DISCREPANCIES\n// ==================================================\n\nconst gaps = [];\n\nconst modelTotal =\n  Number.isInteger(parsed.total_tasks)\n    ? parsed.total_tasks\n    : null;\n\nconst modelCountDiscrepancy =\n  modelTotal !== null &&\n  modelTotal !== tasks.length;\n\nfor (const gap of scopedStrings(parsed.data_gaps)) {\n  gaps.push(gap);\n}\n\n// ==================================================\n// 13. BUILD STAKEHOLDER DRAFT\n// ==================================================\n\nconst incomingEmail = obj(parsed.email_draft);\n\nconst suppliedDraft =\n  typeof parsed.draft_stakeholder_update === 'string'\n    ? parsed.draft_stakeholder_update\n    : str(incomingEmail.body);\n\nconst draftHasValidScope =\n  referencesOnlySelectedTasks(suppliedDraft);\n\n/**\n * Sprint risk consistency guard\n *\n * Detect named project risks in a model-generated\n * draft when no sprint risks have been validated.\n */\n\nconst normalizedDraft = suppliedDraft.toLowerCase();\n\nconst riskNames = canonicalRisks\n  .map(r => {\n    const match = r.match(\n      /(?:^|;)\\s*category:\\s*([^;]+)/i\n    );\n    return match ? match[1].trim().toLowerCase() : '';\n  })\n  .filter(Boolean);\n\nconst draftMentionsNamedRisks =\n  /\\bR\\d{1,3}\\b/i.test(suppliedDraft) ||\n  riskNames.some(name =>\n    normalizedDraft.includes(name)\n  );\n\nconst sprintRiskMismatch =\n  !isProjectWide &&\n  risks.length === 0 &&\n  draftMentionsNamedRisks;\n\n\nconst progressLines = selected\n  .filter(t =>\n    t.status === 'Done' ||\n    t.status === 'In Progress'\n  )\n  .map(t =>\n    `- ${t.task_id}: ${t.task_name} — ` +\n    `${t.status}` +\n    (t.assignee\n      ? ` (${t.assignee})`\n      : '')\n  );\n\nconst remainingLines = selected\n  .filter(t => t.status === 'To Do')\n  .map(t =>\n    `- ${t.task_id}: ${t.task_name} — To Do`\n  );\n\nconst riskStatement =\n  risks.length\n    ? risks.map(r => `- ${r}`).join('\\n')\n    : isProjectWide\n      ? 'Risk-register content could not be retrieved by this reporting process. Risk coverage is incomplete and requires source verification.'\n      : 'No sprint-specific risk statements have been independently established for this report.';\n\nconst fallbackDraft = [\n  'DRAFT — Stakeholder Status Update',\n  '',\n  `Scope: ${sprint || 'Full project task board'}`,\n  '',\n  canonicalSummary,\n  '',\n  'Recorded progress:',\n  progressLines.length\n    ? progressLines.join('\\n')\n    : 'No Done or In Progress tasks recorded.',\n  '',\n  'Remaining work:',\n  remainingLines.length\n    ? remainingLines.join('\\n')\n    : 'No To Do tasks recorded.',\n  '',\n  'Documented blockers:',\n  blockers.length\n    ? blockers.map(b => `- ${b}`).join('\\n')\n    : 'None recorded within this reporting scope.',\n  '',\n  'Relevant risks:',\n  riskStatement,\n  '',\n  'This draft reflects the supplied project snapshot.',\n  'Current live task status has not been independently verified.',\n  '',\n  'Human review is required before distribution.'\n].join('\\n');\n\n// Keep a scoped model draft for sprint reports.\n// For project-wide reporting, prefer the\n// source-derived draft and source risk records.\n\nconst emailBody =\n  suppliedDraft &&\n  draftHasValidScope &&\n  !modelScopeMismatch &&\n  !isProjectWide &&\n  !sprintRiskMismatch\n    ? suppliedDraft\n    : fallbackDraft;\n\nconst draftBody =\n  /^\\s*DRAFT\\b/i.test(emailBody)\n    ? emailBody\n    : `DRAFT — NOT SENT\\n\\n${emailBody}`;\n\nconst email_draft = {\n  subject:\n    (\n      !modelScopeMismatch\n        ? str(incomingEmail.subject)\n        : ''\n    ) ||\n    `Draft: ${sprint || 'Project-wide'} status update`,\n\n  body: draftBody,\n  is_draft: true\n};\n\n// ==================================================\n// 14. STATUS VALIDATION\n// ==================================================\n\nconst validated =\n  countsMatch &&\n  blockersMatch &&\n  !hasDuplicateIds &&\n  invalidTasks.length === 0;\n\nif (!validated) {\n  return failure(\n    'Canonical task or blocker reconciliation failed.'\n  );\n}\n\n// ==================================================\n// 15. OUTPUT\n// ==================================================\n\nreturn [{\n  json: {\n    ...base,\n\n    status: 'ok',\n\n    // Canonical status report\n   \nproject_name:\n  str(parsed.project_name) ||\n  str(trig.project_name) ||\n  str(obj(structuredContext).project_name) ||\n  str(obj(structuredContext).project),\n\n    sprint: sprint || null,\n\n    as_of_date:\n      parsed.as_of_date ?? null,\n\n    summary,\n\n    total_tasks: tasks.length,\n\n    status_counts,\n\n    tasks,\n\n    highlights,\n\n    blockers,\n\n    risks,\n\n    source_references: sourceRefs,\n\n    draft_stakeholder_update: draftBody,\n\n    // Legacy compatibility\n    report_period:\n      sprint || 'All project sprints',\n\n    overall_rag: 'Unknown',\n\n    executive_summary: summary,\n\n    workstreams: [],\n\n    task_counts,\n\n    upcoming: [],\n\n    issues_and_blockers: blockers,\n\n    email_draft,\n\n    data_gaps: gaps,\n\n    // Deterministic reconciliation\n    task_counts_validated: countsMatch,\n\n    task_counts_reconciled: countsMatch,\n\n    blocker_reconciliation_pass:\n      blockersMatch,\n\n    // Model diagnostics\n    model_count_discrepancy:\n      modelCountDiscrepancy,\n\n    model_scope_mismatch:\n      modelScopeMismatch,\n    \n    sprint_risk_draft_mismatch: \n      sprintRiskMismatch,\n\n    model_reported_sprint:\n      modelSprint || null,\n\n    // Source-access diagnostics\n    risk_register_unavailable:\n      riskRegisterUnavailable,\n\n    risk_extraction_status:\n      riskExtractionStatus,\n\n    risk_records_extracted:\n      canonicalRisks.length,\n\n    context_has_risk_filename:\n      contextHasRiskFilename,\n\n    context_has_risk_ids:\n      contextHasRiskIds,\n\n    context_risk_files:\n      contextRiskFiles,\n\n    context_characters:\n      contextText.length,\n\n    validation_status: 'PARTIAL'\n  }\n}];"
+      },
+      "id": "bdb3de61-8223-485d-af2d-c69b77065080",
+      "name": "Parse Status Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        848,
+        336
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "REMAP_WORKFLOW_ID",
+          "cachedResultName": "Mira_08_Langfuse_Trace_Exporter"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "trace_id": "={{ $(\"Capture Trace Context\").first().json.trace_id }}",
+            "span_id": "={{ $(\"Capture Trace Context\").first().json.span_id }}",
+            "parent_span_id": "={{ $(\"Capture Trace Context\").first().json.parent_span_id }}",
+            "workflow_name": "Mira_03_Status_Reporter_Agent",
+            "project_id": "={{ $(\"Capture Trace Context\").first().json.snapshot_id || \"\" }}",
+            "test_case_id": "={{ $(\"Capture Trace Context\").first().json.test_case_id || \"\" }}",
+            "start_time_ns": "={{ $(\"Capture Trace Context\").first().json.start_time_ns }}",
+            "end_time_ns": "={{ String(Date.now()) + \"000000\" }}",
+            "status": "={{ $json.status === \"ok\" ? \"success\" : String($json.status || \"error\") }}",
+            "model": "gpt-5-mini",
+            "input_tokens": "={{ (() => { let t = {}; try { const r = $(\"Status Model\").first().json; t = r.tokenUsage || r.tokenUsageEstimate || {}; } catch (e) {} if (t.promptTokens) return String(t.promptTokens); const c = $(\"Capture Trace Context\").first().json; return String(Math.ceil((String(c.project_context || \"\").length + String(c.request_text || \"\").length + 2500) / 4)); })() }}",
+            "output_tokens": "={{ (() => { let t = {}; try { const r = $(\"Status Model\").first().json; t = r.tokenUsage || r.tokenUsageEstimate || {}; } catch (e) {} if (t.completionTokens) return String(t.completionTokens); try { const g = $(\"Generate Grounded Status Report\").first().json; return String(Math.ceil(String(g.text || g.output || \"\").length / 4)); } catch (e) { return \"0\"; } })() }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "trace_id",
+              "displayName": "trace_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "span_id",
+              "displayName": "span_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "parent_span_id",
+              "displayName": "parent_span_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "workflow_name",
+              "displayName": "workflow_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "project_id",
+              "displayName": "project_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "test_case_id",
+              "displayName": "test_case_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "start_time_ns",
+              "displayName": "start_time_ns",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "end_time_ns",
+              "displayName": "end_time_ns",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "model",
+              "displayName": "model",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "input_tokens",
+              "displayName": "input_tokens",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "output_tokens",
+              "displayName": "output_tokens",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "input",
+              "displayName": "input",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "output",
+              "displayName": "output",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "source_references",
+              "displayName": "source_references",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "validation_status",
+              "displayName": "validation_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "request_type",
+              "displayName": "request_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "error_detail",
+              "displayName": "error_detail",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "tool_summary",
+              "displayName": "tool_summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "prompt_version",
+              "displayName": "prompt_version",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "schema_version",
+              "displayName": "schema_version",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "retrieval_summary",
+              "displayName": "retrieval_summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "execution_id",
+              "displayName": "execution_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "d9416e1c-dd63-4adb-a13d-95724d394991",
+      "name": "Export Agent Observation",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1152,
+        144
+      ],
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $('Capture Trace Context').first().json;\nreturn $('Parse Status Output').all().map(i => ({ json: Object.assign({}, i.json, { trace_id: ctx.trace_id, span_id: ctx.span_id }) }));"
+      },
+      "id": "ba162285-2a09-4499-b8b9-53a68064f83e",
+      "name": "Return Agent Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1376,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "REMAP_WORKFLOW_ID",
+          "cachedResultName": "Mira_08_Langfuse_Trace_Exporter"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "trace_id": "={{ $(\"Capture Trace Context\").first().json.trace_id }}",
+            "span_id": "={{ $(\"Capture Trace Context\").first().json.span_id }}",
+            "parent_span_id": "={{ $(\"Capture Trace Context\").first().json.parent_span_id }}",
+            "workflow_name": "Mira_03_Status_Reporter_Agent",
+            "project_id": "={{ $(\"Capture Trace Context\").first().json.snapshot_id || \"\" }}",
+            "test_case_id": "={{ $(\"Capture Trace Context\").first().json.test_case_id || \"\" }}",
+            "start_time_ns": "={{ $(\"Capture Trace Context\").first().json.start_time_ns }}",
+            "end_time_ns": "={{ String(Date.now()) + \"000000\" }}",
+            "status": "error",
+            "model": "gpt-5-mini",
+            "input_tokens": "={{ (() => { let t = {}; try { const r = $(\"Status Model\").first().json; t = r.tokenUsage || r.tokenUsageEstimate || {}; } catch (e) {} if (t.promptTokens) return String(t.promptTokens); const c = $(\"Capture Trace Context\").first().json; return String(Math.ceil((String(c.project_context || \"\").length + String(c.request_text || \"\").length + 2500) / 4)); })() }}",
+            "output_tokens": "={{ (() => { let t = {}; try { const r = $(\"Status Model\").first().json; t = r.tokenUsage || r.tokenUsageEstimate || {}; } catch (e) {} if (t.completionTokens) return String(t.completionTokens); try { const g = $(\"Generate Grounded Status Report\").first().json; return String(Math.ceil(String(g.text || g.output || \"\").length / 4)); } catch (e) { return \"0\"; } })() }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "trace_id",
+              "displayName": "trace_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "span_id",
+              "displayName": "span_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "parent_span_id",
+              "displayName": "parent_span_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "workflow_name",
+              "displayName": "workflow_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "project_id",
+              "displayName": "project_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "test_case_id",
+              "displayName": "test_case_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "start_time_ns",
+              "displayName": "start_time_ns",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "end_time_ns",
+              "displayName": "end_time_ns",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "model",
+              "displayName": "model",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "input_tokens",
+              "displayName": "input_tokens",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "output_tokens",
+              "displayName": "output_tokens",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "52dace42-ac18-4926-8d84-2d91dccde3c2",
+      "name": "Export Agent Failure",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1152,
+        1024
+      ],
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f1",
+              "name": "agent",
+              "value": "status",
+              "type": "string"
+            },
+            {
+              "id": "f2",
+              "name": "snapshot_id",
+              "value": "={{ $(\"Capture Trace Context\").first().json.snapshot_id || \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "f3",
+              "name": "status",
+              "value": "error",
+              "type": "string"
+            },
+            {
+              "id": "f4",
+              "name": "error_detail",
+              "value": "={{ (() => { try { const it = $(\"Parse Status Output\").first(1); const e = it && it.json ? it.json.error : null; if (!e) return \"Agent post-processing failed\"; return typeof e === \"string\" ? e : (e.message || JSON.stringify(e)); } catch (x) { return \"Agent post-processing failed\"; } })() }}",
+              "type": "string"
+            },
+            {
+              "id": "f5",
+              "name": "trace_id",
+              "value": "={{ $(\"Capture Trace Context\").first().json.trace_id }}",
+              "type": "string"
+            },
+            {
+              "id": "f6",
+              "name": "span_id",
+              "value": "={{ $(\"Capture Trace Context\").first().json.span_id }}",
+              "type": "string"
+            },
+            {
+              "id": "f7",
+              "name": "generated_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e988bf15-8e8f-446c-9735-0acaa723c387",
+      "name": "Return Agent Failure",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1376,
+        1024
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "n1",
+              "name": "agent",
+              "value": "status",
+              "type": "string"
+            },
+            {
+              "id": "n2",
+              "name": "snapshot_id",
+              "value": "={{ $json.snapshot_id || \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "n3",
+              "name": "status",
+              "value": "no_data",
+              "type": "string"
+            },
+            {
+              "id": "n4",
+              "name": "message",
+              "value": "No project context supplied; status report not generated. Upload project files first.",
+              "type": "string"
+            },
+            {
+              "id": "n5",
+              "name": "tasks",
+              "value": "={{ [] }}",
+              "type": "array"
+            },
+            {
+              "id": "n6",
+              "name": "email_draft",
+              "value": "={{ ({ subject: \"\", body: \"\", is_draft: true }) }}",
+              "type": "object"
+            },
+            {
+              "id": "n7",
+              "name": "generated_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0fe40d49-5a7d-4747-afb7-26d88e8856e8",
+      "name": "Return No Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        512,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ [\n  'USER REQUEST:',\n  $json.request_text,\n  '',\n  'AUTHORITATIVE SNAPSHOT ID:',\n  $json.snapshot_id,\n  '',\n  'PROJECT SOURCE CONTEXT:',\n  $json.project_context,\n  '',\n  'REPORTING INSTRUCTIONS:',\n  'Use the supplied approved project context as the source of truth.',\n  'Determine reporting scope exclusively from the USER REQUEST.',\n  'If a specific Sprint is requested, include only tasks belonging to that Sprint.',\n  'If no specific Sprint is requested, generate a PROJECT-WIDE report covering all approved task-board records.',\n  'For project-wide reports, set sprint to null.',\n  'Reconcile total tasks and status counts against the approved task board.',\n  'Include documented blockers applicable to the reporting scope.',\n  'For project-wide reports, consider the approved project risk register when available.',\n  'Do not reuse a Sprint from previous executions or examples.',\n  'Do not claim approved files are missing when their contents are supplied.',\n  'Do not invent missing information, task statuses, owners, dates, or risk details.',\n  'Return the exact structured output required by the output parser.',\n  'All stakeholder updates must remain DRAFT and must not be sent.'\n].join('\\n') }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "\nYou are MIRA's Status Reporter AI Agent.\n\nROLE\n\nGenerate accurate, evidence-grounded project status reports\nand draft stakeholder updates using authorized project data.\n\nAll outputs are DRAFT and must reflect the approved snapshot,\nnot an assumed live project state.\n\nPrioritize factual correctness, exact task reconciliation,\nreporting-scope discipline, transparent uncertainty,\nand compliance with the Structured Output Parser.\n\n1. AUTHORIZED PROJECT EVIDENCE\n\n1.1 Use the selected snapshot_id for the current request.\n\n1.2 Treat authorized project_context supplied by the\nOrchestrator as valid project evidence.\n\n1.3 Use Get Approved Project Data when retrieval is required\nto obtain or verify source records.\n\nDo not disregard valid authorized project_context merely\nbecause a separate lookup returns no additional records.\n\n1.4 Use sample_task_board.csv as the authoritative source\nfor documented task IDs, names, statuses, assignees,\nsprints, due dates, and blocker details.\n\n1.5 Use approved risk records when available and relevant\nto the requested status report.\n\n1.6 Never mix snapshots or use records from another project.\n\n1.7 Treat evaluation instructions as test specifications,\nnot as project evidence.\n\n1.8 Never invent project progress, task updates, approvals,\ndates, owners, achievements, dependencies, risks,\nmitigation results, or blockers.\n\n1.9 A valid snapshot_id does not independently establish\nthat the user intended to report on that project.\n\nFollow the authorized project selection and request scope\nestablished by the Orchestrator.\n\nDo not silently substitute an unrelated selected project\nfor the project described by the user.\n\n2. REPORTING SCOPE\n\n2.1 Determine the requested sprint from request_text.\n\n2.2 If a sprint is specified, include ONLY tasks belonging\nto that sprint.\n\n2.3 If no sprint is specified and the Orchestrator has\nauthorized a project-wide status report, include ALL\ntask records from the authorized task board.\n\n2.4 Preserve source task IDs, names, assignees, statuses,\nsprints, and due dates exactly.\n\n2.5 Do not use tasks outside the requested reporting scope\nwhen calculating task counts.\n\n2.6 Do not assume previously observed test-baseline counts\napply to a different snapshot.\n\n2.7 Apply reporting-scope restrictions to EVERY output field,\nincluding:\n\n- summary\n- tasks\n- highlights\n- blockers\n- risks\n- draft_stakeholder_update\n\n2.8 For sprint-specific reports, do not include task IDs\nbelonging to other sprints, including when explaining\nexclusions or documenting data gaps.\n\n2.9 Relevant project-level risks may be referenced when\nsupported by approved risk records, but must not introduce\nout-of-scope task details.\n\n2.10 If the reporting request is insufficient or ambiguous,\ndo not invent the missing scope.\n\nFollow the authorized clarification or insufficient-data\npath supported by the workflow.\n\n3. TASK STATUS AND COUNT RECONCILIATION\n\nUse the exact task statuses:\n\n- Done\n- In Progress\n- To Do\n- Blocked\n\nDo not rename source statuses.\n\nCalculate all counts directly from the selected task records.\n\nRequired invariants:\n\ntotal_tasks = tasks.length\n\nstatus_counts.Done\n+ status_counts[\"In Progress\"]\n+ status_counts[\"To Do\"]\n+ status_counts.Blocked\n= total_tasks\n\nEach selected task must appear exactly once.\n\nDo not manufacture missing tasks or adjust source statuses\nto make totals reconcile.\n\nBefore finalizing, verify:\n\n- No duplicate task IDs.\n- Every task has a documented status.\n- Every task belongs to the requested scope.\n- Status counts match the included tasks.\n- Total tasks equals the unique task count.\n- Counts are derived from actual source records.\n\nIf a task has an unrecognized or missing status,\ndo not silently exclude or reclassify it.\n\nIdentify the discrepancy using the workflow's supported\nvalidation or insufficient-data mechanism.\n\nDo not claim an AI-generated count differed from the source\nunless an actual mismatch was observed and recorded.\n\nDo not claim internal validation, reconciliation success,\nor automated correction unless supported by an actual\nworkflow result.\n\n4. TASK DETAILS\n\nEvery task must contain the fields required by the\nStructured Output Parser.\n\nInclude documented:\n\n- task_id\n- task_name\n- status\n- assignee\n- sprint\n- due_date\n\nUse null for unavailable optional values when permitted\nby the parser.\n\nDo not infer missing owners, dates, task statuses,\ncompletion percentages, or progress measurements.\n\nPreserve the exact documented status.\n\nFor example:\n\n\"In Progress\" means that the task is recorded as In Progress.\n\nIt does NOT independently prove:\n\n- A deliverable was completed.\n- A specific technical activity occurred.\n- Progress is on schedule.\n- An approval was obtained.\n- Work is progressing successfully.\n\nOnly report such outcomes when separately documented.\n\n5. BLOCKER RECONCILIATION\n\n5.1 Identify every task with status \"Blocked\" within\nthe requested reporting scope.\n\n5.2 Include every such task in the blockers section.\n\n5.3 Preserve its task ID, name, documented blocker reason,\nassignee, sprint, and due date where supported.\n\n5.4 Do not return an empty blockers list when the selected\ntask records contain blocked tasks.\n\n5.5 If no tasks are blocked within the requested scope,\nreturn an empty blockers list.\n\n5.6 Do not infer blocker resolution, escalation completion,\nor an estimated resolution date without evidence.\n\n5.7 Distinguish a task assignee from a specifically\ndesignated blocker-resolution owner.\n\n5.8 Apply this reconciliation:\n\nNumber of blocked tasks in tasks[]\n=\nNumber of distinct blocked tasks represented in blockers[]\n\n5.9 Ensure blocked task IDs are consistent between\ntasks, blockers, summary, and draft_stakeholder_update.\n\n5.10 If a blocked task has a documented blocker reason,\ninclude that reason accurately.\n\nIf the reason is missing, do not invent one.\n\n5.11 Do not confuse project-level risks with confirmed\nblocked tasks.\n\nA risk can exist without a blocked task.\n\nA blocked task does not prove that a registered risk\nhas materialized.\n\n6. RISK REPORTING\n\nDistinguish:\n\n- Documented risks in approved risk records.\n- Actual issues and blockers in the task board.\n- Potential concerns proposed by MIRA.\n\n6.1 Review the approved risk records available within\nthe authorized project context.\n\n6.2 Determine which documented risks are relevant to\nthe requested reporting scope.\n\n6.3 For a project-wide report, include relevant registered\nrisks that materially affect delivery, implementation,\nsecurity, compliance, or project objectives.\n\nDo not silently omit relevant approved risks merely because\nthey are stored in the risk register rather than the task board.\n\n6.4 For sprint-specific reports, include only risks with a\nsupported relationship to that sprint.\n\nDo not copy all project risks automatically.\n\n6.5 Preserve documented risk identifiers, descriptions,\nimpacts, mitigation strategies, and source references\nwhere the parser supports them.\n\n6.6 Do not fabricate:\n\n- Risk owners\n- Numeric likelihood\n- Numeric severity\n- Priority scores\n- Mitigation completion status\n- Residual risk\n- Approval or acceptance decisions\n\n6.7 An empty risks array is acceptable only when no\nrelevant documented risks are established for the\nrequested reporting scope.\n\n6.8 Do not claim \"no risks exist\" merely because the\ntask board contains no explicit risk entries.\n\n6.9 If a relevant risk register is unavailable or insufficient,\ndescribe that limitation accurately using a supported\nreport field.\n\n6.10 Recommendations must be distinguishable from confirmed\nmitigation actions.\n\nDo not represent suggested mitigations as completed work.\n\n7. EXECUTIVE SUMMARY AND HIGHLIGHTS\n\nPrepare a concise summary based on actual task statuses\nand documented project evidence.\n\nFor project-wide reports, summarize:\n\n- Total task count\n- Completed tasks\n- In Progress tasks\n- To Do tasks\n- Blocked tasks\n- Relevant risks\n- Important evidence limitations\n\nFor sprint-specific reports, use only in-scope task counts.\n\nHighlights must reference identifiable tasks that are\nDone or In Progress.\n\nDifferentiate completed work from work still underway.\n\nMention documented blockers when they affect the\nrequested reporting scope.\n\nDo not assert that the project is on track, delayed,\nor at risk without an approved assessment method\nor sufficiently supported evidence.\n\nDo not fabricate progress narratives.\n\nExamples:\n\nALLOWED:\n\"T007 is recorded as In Progress.\"\n\nNOT ALLOWED WITHOUT ADDITIONAL EVIDENCE:\n\"T007 has successfully completed evaluation activities.\"\n\nALLOWED:\n\"T024 is recorded as Blocked.\"\n\nNOT ALLOWED WITHOUT ADDITIONAL EVIDENCE:\n\"T024 has delayed production deployment.\"\n\nDo not present qualitative interpretations as verified\nproject outcomes.\n\n8. TEMPORAL GROUNDING\n\nTreat the selected snapshot as the source of recorded\ntask statuses, not necessarily the current live state.\n\nIf no reporting effective date is provided, set\nas_of_date to null.\n\nDo not use report generation time as the snapshot effective\ndate unless authorized workflow evidence establishes it.\n\nDo not present historical task due dates as upcoming.\n\nDo not classify tasks as currently overdue solely\nbecause their recorded due dates precede today's date.\n\nDo not invent revised deadlines, completion dates,\nor an approved project calendar baseline.\n\nDo not interpret historical task records as live status.\n\nDistinguish:\n\n- Recorded task due date\n- Reporting effective date\n- Snapshot capture date\n- Actual completion date\n- Report generation timestamp\n\nExplain relevant freshness limitations within the\npermitted output fields.\n\nWhen current status cannot be verified, state that\nthe report reflects the approved snapshot.\n\n9. DATA GAPS\n\nReport only genuine missing information when the\noutput schema provides an appropriate location.\n\nPotential gaps include:\n\n- Missing snapshot effective date.\n- Missing current task-status verification.\n- Missing blocker resolution ETA.\n- Missing evidence of completed approvals.\n- Missing progress measurements.\n- Missing risk mitigation status.\n- Missing project-health criteria.\n\nDo not claim available task-board records,\nassignees, dates, or blockers are missing.\n\nDo not invent internal validation failures or\nclaim a source/AI count discrepancy unless observed.\n\nBefore claiming a data gap, consider all relevant\napproved source records available in the snapshot.\n\nDo not treat the following as data gaps:\n\n- Zero blocked tasks in the requested sprint.\n- Tasks belonging to other sprints.\n- A project-wide risk not applicable to the sprint.\n- A null calendar date when only relative planning\n  weeks are documented and permitted by the schema.\n\nDo not add unsupported warnings merely to make the\nreport appear comprehensive.\n\n10. DRAFT STAKEHOLDER UPDATE\n\nGenerate a professional, concise DRAFT stakeholder\nupdate using the same selected task records.\n\nInclude, when supported:\n\n- Reporting scope\n- Confirmed progress\n- Remaining work\n- Documented blockers\n- Relevant risks\n- Recommended next steps\n- Important reporting limitations\n\n10.1 Clearly label the communication DRAFT.\n\n10.2 Do not claim that the update was approved or sent.\n\n10.3 Ensure all task IDs, statuses, counts, owners,\nand blocker references agree with the structured report.\n\n10.4 For sprint-specific updates, do not introduce\nout-of-scope task IDs.\n\n10.5 For project-wide updates, do not omit documented\nblocked tasks from the description of blockers.\n\n10.6 Do not introduce new risk claims or project-health\nassessments unsupported by the structured report\nand approved sources.\n\n10.7 Recommended next steps must be framed as proposals,\nnot as confirmed commitments.\n\n10.8 Do not imply that a person agreed to an action\nunless the approval or assignment is documented.\n\n10.9 Do not describe past recorded due dates as\nfuture commitments.\n\n10.10 Maintain professional, neutral, stakeholder-ready\nlanguage without exaggerating project progress.\n\n11. SOURCE REFERENCES\n\nInclude sample_task_board.csv when its contents were used.\n\nInclude additional approved documents only when their\ncontents actually support statements in the report.\n\nDo not cite merely listed or unavailable documents.\n\nPreserve source references for material claims where\nthe Structured Output Parser permits them.\n\nCitations must correspond to actual authorized evidence.\n\nDo not fabricate source filenames, row identifiers,\ndocument versions, or approval records.\n\nA citation does not automatically prove a claim is true.\n\nConfirm that the cited evidence supports the associated\nfact before including the claim.\n\n12. FINAL EVIDENCE RECONCILIATION\n\nBefore returning the JSON:\n\n1. Verify snapshot identity.\n2. Verify requested sprint or full-project scope.\n3. Reconcile every task ID against authorized records.\n4. Reconcile unique task counts.\n5. Verify the sum of status_counts equals total_tasks.\n6. Check all in-scope blocked tasks are represented.\n7. Verify blocked task counts match blocker records.\n8. Validate reported highlights against task statuses.\n9. Validate risk statements against approved evidence.\n10. Remove unsupported progress claims.\n11. Remove unsupported schedule and overdue claims.\n12. Remove unsupported data-gap assertions.\n13. Verify the draft stakeholder update agrees with\n    the structured report.\n14. Verify no out-of-scope task IDs appear anywhere.\n15. Verify source references support the reported facts.\n16. Verify all output fields and nested types match\n    the connected Structured Output Parser.\n\nIf essential task records are missing or invalid,\ndo not manufacture them.\n\nFollow the configured clarification, insufficient-data,\nor validation-error process where supported.\n\nDo not produce a misleading complete report merely\nto satisfy an expected output.\n\n13. OUTPUT FORMAT\n\nReturn ONLY one JSON object matching the connected\nStructured Output Parser.\n\nRequired root fields:\n\nproject_name\nsprint\nas_of_date\nsummary\ntotal_tasks\nstatus_counts\ntasks\nhighlights\nblockers\nrisks\nsource_references\ndraft_stakeholder_update\n\nUse exact nested fields and data types defined by\nthe connected Structured Output Parser.\n\nas_of_date must be null unless a reporting date\nis explicitly supplied or established by authorized\nworkflow evidence.\n\nDo not return legacy root fields:\n\nreport_period\noverall_rag\nexecutive_summary\nworkstreams\nemail_draft\nissues_and_blockers\n\nDo not add task_counts unless the parser explicitly\nrequires that field.\n\nDo not invent additional root fields.\n\nDo not wrap the JSON in an \"output\", \"data\",\n\"result\", or \"response\" object.\n\nDo not return Markdown or explanatory prose\noutside the JSON.\n\nAll generated stakeholder communications remain DRAFT.\n\nFINAL PRIORITY:\n\nGrounded evidence > speculative interpretation.\n\nExact task reconciliation > estimated counts.\n\nRecorded facts > assumed current project status.\n\nScope correctness > report completeness.\n\nParser compliance > additional unsupported fields.\n\nWhen evidence is insufficient, explain the limitation\ninstead of inventing a result.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        192,
+        272
+      ],
+      "id": "1b2a900c-9276-45cb-825c-2fcbef9eeed2",
+      "name": "Mira Status Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-5-mini"
+        },
+        "responsesApiEnabled": false,
+        "options": {
+          "reasoningEffort": "low"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        272,
+        560
+      ],
+      "id": "aac207a8-474c-4f39-8e48-a7fab21014f1",
+      "name": "OpenAI Chat Model"
+    },
+    {
+      "parameters": {
+        "description": "Retrieve read-only approved project data for Mira's Status Reporter.\nUse sample_task_board.csv as the authoritative source for task statuses, sprint assignments, owners, blockers, and due dates.\nAlways use the requested snapshot_id. Never mix project snapshots or invent task information. Use approved source records only.\n",
+        "workflowId": {
+          "__rl": true,
+          "value": "REMAP_WORKFLOW_ID",
+          "mode": "list",
+          "cachedResultName": "MIRA_Get_Project_Data"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "snapshot_id": "=\n{{ $('When Orchestrator Requests Status').first().json.snapshot_id }}\n",
+            "doc_kind": "all"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "doc_kind",
+              "displayName": "doc_kind",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "file_name",
+              "displayName": "file_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "snapshot_id",
+              "displayName": "snapshot_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        368,
+        560
+      ],
+      "id": "ba616311-5a43-4555-b314-954bea4f7e63",
+      "name": "Get Approved Project Data"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"additionalProperties\": false,\n  \"properties\": {\n    \"project_name\": {\n      \"type\": \"string\"\n    },\n    \"sprint\": {\n      \"type\": [\"string\", \"null\"],\n      \"description\": \"Requested sprint, or null for a project-wide report.\"\n    },\n    \"as_of_date\": {\n      \"type\": [\"string\", \"null\"],\n      \"description\": \"Reporting effective date if supported by authorized evidence; otherwise null.\"\n    },\n    \"summary\": {\n      \"type\": \"string\"\n    },\n    \"total_tasks\": {\n      \"type\": \"integer\",\n      \"minimum\": 0\n    },\n    \"status_counts\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"Done\": {\n          \"type\": \"integer\",\n          \"minimum\": 0\n        },\n        \"In Progress\": {\n          \"type\": \"integer\",\n          \"minimum\": 0\n        },\n        \"To Do\": {\n          \"type\": \"integer\",\n          \"minimum\": 0\n        },\n        \"Blocked\": {\n          \"type\": \"integer\",\n          \"minimum\": 0\n        }\n      },\n      \"required\": [\n        \"Done\",\n        \"In Progress\",\n        \"To Do\",\n        \"Blocked\"\n      ]\n    },\n    \"tasks\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"properties\": {\n          \"task_id\": {\n            \"type\": \"string\"\n          },\n          \"task_name\": {\n            \"type\": \"string\"\n          },\n          \"status\": {\n            \"type\": \"string\",\n            \"enum\": [\n              \"Done\",\n              \"In Progress\",\n              \"To Do\",\n              \"Blocked\"\n            ]\n          },\n          \"assignee\": {\n            \"type\": [\"string\", \"null\"]\n          },\n          \"sprint\": {\n            \"type\": \"string\"\n          },\n          \"due_date\": {\n            \"type\": [\"string\", \"null\"]\n          }\n        },\n        \"required\": [\n          \"task_id\",\n          \"task_name\",\n          \"status\",\n          \"assignee\",\n          \"sprint\",\n          \"due_date\"\n        ]\n      }\n    },\n    \"highlights\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    },\n    \"blockers\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Every blocked task in the reporting scope must be represented with its task ID, recorded reason and documented assignee where available.\"\n    },\n    \"risks\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Relevant approved project risks, grounded in source evidence and distinguished from confirmed blockers.\"\n    },\n    \"source_references\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    },\n    \"draft_stakeholder_update\": {\n      \"type\": \"string\",\n      \"description\": \"Professional stakeholder update marked DRAFT, containing only supported project facts.\"\n    }\n  },\n  \"required\": [\n    \"project_name\",\n    \"sprint\",\n    \"as_of_date\",\n    \"summary\",\n    \"total_tasks\",\n    \"status_counts\",\n    \"tasks\",\n    \"highlights\",\n    \"blockers\",\n    \"risks\",\n    \"source_references\",\n    \"draft_stakeholder_update\"\n  ]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        496,
+        544
+      ],
+      "id": "25e90a21-b417-4b7e-9c66-dc1c6a3972f0",
+      "name": "Structured Output Parser1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Orchestrator Requests Status": {
+      "main": [
+        [
+          {
+            "node": "Capture Trace Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Capture Trace Context": {
+      "main": [
+        [
+          {
+            "node": "Has Project Context?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Project Context?": {
+      "main": [
+        [
+          {
+            "node": "Mira Status Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return No Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Status Output": {
+      "main": [
+        [
+          {
+            "node": "Export Agent Observation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Export Agent Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Export Agent Observation": {
+      "main": [
+        [
+          {
+            "node": "Return Agent Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Export Agent Failure": {
+      "main": [
+        [
+          {
+            "node": "Return Agent Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Mira Status Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Approved Project Data": {
+      "ai_tool": [
+        [
+          {
+            "node": "Mira Status Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Mira Status Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mira Status Agent": {
+      "main": [
+        [
+          {
+            "node": "Parse Status Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "nodeGroups": [
+    {
+      "id": "b370922a-0ff8-4c53-a7a4-87117902f1ba",
+      "name": "Capture request context",
+      "nodeIds": [
+        "3dffcfed-26c9-4c69-9b84-6eea4fdb0ec5",
+        "18b99f26-2af2-469d-a3ee-627baf20ed06"
+      ],
+      "description": "Picks up the trace and parent span from the orchestrator, stamps a new span and start time, then checks data exists"
+    },
+    {
+      "id": "a1e3249c-4647-44bd-96c9-c45d16610a0d",
+      "name": "Record agent observation",
+      "nodeIds": [
+        "d9416e1c-dd63-4adb-a13d-95724d394991",
+        "ba162285-2a09-4499-b8b9-53a68064f83e"
+      ],
+      "description": "Sends the finished span with status, timing and token usage to Langfuse, then returns the result to the orchestrator"
+    },
+    {
+      "id": "1c16402c-40ef-4d3c-bc23-deeed7b36e8c",
+      "name": "Record agent failure",
+      "nodeIds": [
+        "52dace42-ac18-4926-8d84-2d91dccde3c2",
+        "e988bf15-8e8f-446c-9735-0acaa723c387"
+      ],
+      "description": "When post-processing crashes, sends an error span on the same trace and returns an error result instead of failing"
+    }
+  ],
+  "tags": []
+}

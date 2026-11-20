@@ -1,0 +1,7 @@
+# Never commit credentials, local environment files, or actual exports
+.env
+.env.*
+*.secret.json
+*.credentials.json
+raw-exports/
+private-data/

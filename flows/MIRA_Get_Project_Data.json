@@ -1,0 +1,183 @@
+{
+  "name": "MIRA_Get_Project_Data",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "doc_kind"
+            },
+            {
+              "name": "file_name"
+            },
+            {
+              "name": "snapshot_id"
+            }
+          ]
+        }
+      },
+      "id": "3b71ef28-945f-4491-a864-b14c7c0a58e2",
+      "name": "When MIRA Requests Project Data",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "REMAP_DATA_TABLE_ID",
+          "cachedResultName": "MIRA_Project_Data"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "=snapshot_id",
+              "keyValue": "={{ $('When MIRA Requests Project Data').first().json.snapshot_id }}"
+            }
+          ]
+        },
+        "returnAll": true,
+        "orderBy": true,
+        "orderByColumn": "uploaded_at"
+      },
+      "id": "3e09e600-a550-463c-8de9-8ac36f944a06",
+      "name": "Read Project Data Rows",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        0
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "g2",
+              "name": "requested_doc_kind",
+              "value": "={{ String($('When MIRA Requests Project Data').first().json.doc_kind || 'all').trim().toLowerCase() || 'all' }}",
+              "type": "string"
+            },
+            {
+              "id": "g3",
+              "name": "requested_file_name",
+              "value": "={{ String($('When MIRA Requests Project Data').first().json.file_name || '').trim().toLowerCase() }}",
+              "type": "string"
+            },
+            {
+              "id": "g4",
+              "name": "message",
+              "value": "={{ $input.all().map(i => i.json).filter(r => r && r.file_name).sort((a, b) => String(b.uploaded_at).localeCompare(String(a.uploaded_at)) || (b.id || 0) - (a.id || 0)).filter((r, i, all) => all.findIndex(x => x.file_name === r.file_name) === i).filter(r => (String($('When MIRA Requests Project Data').first().json.doc_kind || 'all').trim().toLowerCase() === '' || String($('When MIRA Requests Project Data').first().json.doc_kind || 'all').trim().toLowerCase() === 'all' || String(r.doc_kind).toLowerCase() === String($('When MIRA Requests Project Data').first().json.doc_kind || 'all').trim().toLowerCase()) && (String($('When MIRA Requests Project Data').first().json.file_name || '').trim().toLowerCase() === '' || String(r.file_name).toLowerCase().includes(String($('When MIRA Requests Project Data').first().json.file_name || '').trim().toLowerCase()))).length > 0 ? $input.all().map(i => i.json).filter(r => r && r.file_name).sort((a, b) => String(b.uploaded_at).localeCompare(String(a.uploaded_at)) || (b.id || 0) - (a.id || 0)).filter((r, i, all) => all.findIndex(x => x.file_name === r.file_name) === i).filter(r => (String($('When MIRA Requests Project Data').first().json.doc_kind || 'all').trim().toLowerCase() === '' || String($('When MIRA Requests Project Data').first().json.doc_kind || 'all').trim().toLowerCase() === 'all' || String(r.doc_kind).toLowerCase() === String($('When MIRA Requests Project Data').first().json.doc_kind || 'all').trim().toLowerCase()) && (String($('When MIRA Requests Project Data').first().json.file_name || '').trim().toLowerCase() === '' || String(r.file_name).toLowerCase().includes(String($('When MIRA Requests Project Data').first().json.file_name || '').trim().toLowerCase()))).length + ' file(s) returned from the latest uploads.' : 'No project data uploaded for ' + (String($('When MIRA Requests Project Data').first().json.file_name || '').trim().toLowerCase() || String($('When MIRA Requests Project Data').first().json.doc_kind || 'all').trim().toLowerCase() || 'all') + '. Upload files via the MIRA_Data_Upload form.' }}",
+              "type": "string"
+            },
+            {
+              "id": "g5",
+              "name": "snapshot_id",
+              "value": "={{ ($input.all().map(i => i.json).filter(r => r && r.file_name).sort((a, b) => String(b.uploaded_at).localeCompare(String(a.uploaded_at)) || (b.id || 0) - (a.id || 0)).filter((r, i, all) => all.findIndex(x => x.file_name === r.file_name) === i).filter(r => (String($('When MIRA Requests Project Data').first().json.doc_kind || 'all').trim().toLowerCase() === '' || String($('When MIRA Requests Project Data').first().json.doc_kind || 'all').trim().toLowerCase() === 'all' || String(r.doc_kind).toLowerCase() === String($('When MIRA Requests Project Data').first().json.doc_kind || 'all').trim().toLowerCase()) && (String($('When MIRA Requests Project Data').first().json.file_name || '').trim().toLowerCase() === '' || String(r.file_name).toLowerCase().includes(String($('When MIRA Requests Project Data').first().json.file_name || '').trim().toLowerCase())))[0] || {}).snapshot_id || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "g6",
+              "name": "uploaded_at",
+              "value": "={{ ($input.all().map(i => i.json).filter(r => r && r.file_name).sort((a, b) => String(b.uploaded_at).localeCompare(String(a.uploaded_at)) || (b.id || 0) - (a.id || 0)).filter((r, i, all) => all.findIndex(x => x.file_name === r.file_name) === i).filter(r => (String($('When MIRA Requests Project Data').first().json.doc_kind || 'all').trim().toLowerCase() === '' || String($('When MIRA Requests Project Data').first().json.doc_kind || 'all').trim().toLowerCase() === 'all' || String(r.doc_kind).toLowerCase() === String($('When MIRA Requests Project Data').first().json.doc_kind || 'all').trim().toLowerCase()) && (String($('When MIRA Requests Project Data').first().json.file_name || '').trim().toLowerCase() === '' || String(r.file_name).toLowerCase().includes(String($('When MIRA Requests Project Data').first().json.file_name || '').trim().toLowerCase())))[0] || {}).uploaded_at || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "g7",
+              "name": "available_doc_kinds",
+              "value": "={{ [...new Set($input.all().map(i => i.json).filter(r => r && r.file_name).sort((a, b) => String(b.uploaded_at).localeCompare(String(a.uploaded_at)) || (b.id || 0) - (a.id || 0)).filter((r, i, all) => all.findIndex(x => x.file_name === r.file_name) === i).map(r => r.doc_kind))] }}",
+              "type": "array"
+            },
+            {
+              "id": "g8",
+              "name": "files",
+              "value": "={{ $input.all().map(i => i.json).filter(r => r && r.file_name)\n.filter(r =>\n  String(r.snapshot_id || '') ===\n  String(\n    $('When MIRA Requests Project Data')\n      .first()\n      .json.snapshot_id || ''\n  )\n)\n.sort((a, b) => String(b.uploaded_at).localeCompare(String(a.uploaded_at)) || (b.id || 0) - (a.id || 0)).filter((r, i, all) => all.findIndex(x => x.file_name === r.file_name) === i).filter(r => (String($('When MIRA Requests Project Data').first().json.doc_kind || 'all').trim().toLowerCase() === '' || String($('When MIRA Requests Project Data').first().json.doc_kind || 'all').trim().toLowerCase() === 'all' || String(r.doc_kind).toLowerCase() === String($('When MIRA Requests Project Data').first().json.doc_kind || 'all').trim().toLowerCase()) && (String($('When MIRA Requests Project Data').first().json.file_name || '').trim().toLowerCase() === '' || String(r.file_name).toLowerCase().includes(String($('When MIRA Requests Project Data').first().json.file_name || '').trim().toLowerCase()))).map(r => ({ file_name: r.file_name, doc_kind: r.doc_kind, file_type: r.file_type, snapshot_id: r.snapshot_id, uploaded_at: r.uploaded_at, row_count: r.row_count, content: ['csv','xlsx'].includes(String(r.file_type).toLowerCase()) ? (s => { try { return s ? JSON.parse(s) : null; } catch (e) { return s; } })(r.content) : r.content, validation_report: (s => { try { return s ? JSON.parse(s) : null; } catch (e) { return s; } })(r.validation_report) })) }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "defc2130-d6e4-45ba-81d8-bf2a765b7ffd",
+      "name": "Build Project Data Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        448,
+        0
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "=\n{\n  \"found\": {{ Array.isArray($json.files) && $json.files.length > 0 }}\n}\n",
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        672,
+        0
+      ],
+      "id": "d37d8815-f7ee-4a60-8eb8-93a5bc3d8fd3",
+      "name": "Finalize Retrieval Response"
+    }
+  ],
+  "connections": {
+    "When MIRA Requests Project Data": {
+      "main": [
+        [
+          {
+            "node": "Read Project Data Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Project Data Rows": {
+      "main": [
+        [
+          {
+            "node": "Build Project Data Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Project Data Response": {
+      "main": [
+        [
+          {
+            "node": "Finalize Retrieval Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "nodeGroups": [],
+  "tags": []
+}

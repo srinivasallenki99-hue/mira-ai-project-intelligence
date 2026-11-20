@@ -1,0 +1,208 @@
+{
+  "name": "Mira_10_TokenUsageCollector",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "\n/**\n * MIRA — OpenAI Token Usage Extractor v1.0\n * Source: n8n Execution API (includeData=true)\n * Reads actual usage, not estimates.\n */\n\nconst execution = $input.first().json;\nconst runData = execution.data?.resultData?.runData ?? {};\n\nconst models = [];\nconst records = [];\n\nconst num = value => {\n  if (value === null || value === undefined || value === '') {\n    return null;\n  }\n  const n = Number(value);\n  return Number.isFinite(n) && n >= 0 ? n : null;\n};\n\nfor (const [nodeName, runs] of Object.entries(runData)) {\n  for (const [runIndex, run] of (runs ?? []).entries()) {\n    const aiItems = run.data?.ai_languageModel ?? [];\n\n    for (const group of aiItems) {\n      for (const item of (Array.isArray(group) ? group : [])) {\n        const json = item?.json ?? {};\n        const usage = json.tokenUsage ?? {};\n\n        const input = num(\n          usage.promptTokens ?? usage.input_tokens\n        );\n\n        const output = num(\n          usage.completionTokens ?? usage.output_tokens\n        );\n\n        if (input !== null && output !== null) {\n          records.push({\n            node: nodeName,\n            run_index: runIndex,\n            input_tokens: input,\n            output_tokens: output,\n            total_tokens: num(usage.totalTokens) ?? input + output,\n            model: json.response?.generations?.[0]?.[0]\n              ?.generationInfo?.model_name ?? null\n          });\n        }\n      }\n    }\n\n    // Fallback: tracing metadata, only if no AI item\n    // usage was captured for this node execution.\n    if (!records.some(\n      r => r.node === nodeName && r.run_index === runIndex\n    )) {\n      const usage =\n        run.metadata?.tracing?.gen_ai?.usage ?? {};\n\n      const input = num(usage.input_tokens);\n      const output = num(usage.output_tokens);\n\n      if (input !== null && output !== null) {\n        records.push({\n          node: nodeName,\n          run_index: runIndex,\n          input_tokens: input,\n          output_tokens: output,\n          total_tokens: input + output,\n          model: null\n        });\n      }\n    }\n  }\n}\n\nconst totals = records.reduce((acc, r) => {\n  acc.input_tokens += r.input_tokens;\n  acc.output_tokens += r.output_tokens;\n  acc.total_tokens += r.total_tokens;\n  return acc;\n}, {\n  input_tokens: 0,\n  output_tokens: 0,\n  total_tokens: 0\n});\n\nreturn [{\n  json: {\n    execution_id: execution.id ?? null,\n    workflow_id: execution.workflowId ?? null,\n    usage_found: records.length > 0,\n    model_call_count: records.length,\n    generation_input_tokens:\n      records.length ? totals.input_tokens : null,\n    generation_output_tokens:\n      records.length ? totals.output_tokens : null,\n    generation_total_tokens:\n      records.length ? totals.total_tokens : null,\n    model_usage_records: records\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "6fe94397-77fa-462b-a914-167963d6942b",
+      "name": "Extract Model Usage"
+    },
+    {
+      "parameters": {
+        "jsCode": "const usage = $input.first().json;\n\nconst execution = $('Fetch Execution Details').first().json;\nconst runData =\n  execution.data?.resultData?.runData ?? {};\n\nconst candidates = [];\n\nfor (const runs of Object.values(runData)) {\n  for (const run of runs ?? []) {\n    for (const group of run.data?.main ?? []) {\n      for (const item of group ?? []) {\n        const j = item?.json ?? {};\n\n        if (j.trace_id) candidates.push(j.trace_id);\n        if (j.root_trace_id) candidates.push(j.root_trace_id);\n      }\n    }\n  }\n}\n\nconst traceId = candidates.find(\n  x => /^[0-9a-f]{32}$/i.test(String(x))\n) ?? null;\n\nreturn [{\n  json: {\n    ...usage,\n    trace_id: traceId,\n    ready_for_langfuse:\n      usage.usage_found === true &&\n      traceId !== null\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        608,
+        32
+      ],
+      "id": "6a3d19fa-f36e-4704-b1c4-0f63937c21c4",
+      "name": "Resolve Langfuse Trace"
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * MIRA — Build Token OTEL Payload v1.0\n * One generation observation per model usage record.\n *\n * Run Once for All Items.\n */\n\nconst x = $input.first().json;\n\nif (!x.ready_for_langfuse) {\n  throw new Error('Missing usage or Langfuse trace ID');\n}\n\nconst execution = $('Fetch Execution Details').first().json;\nconst runData = execution.data?.resultData?.runData ?? {};\n\nconst validId = s => /^[0-9a-f]{16}$/i.test(String(s ?? ''));\n\nlet parentSpanId = null;\n\n// Prefer the agent span returned by the completed workflow.\nfor (const runs of Object.values(runData)) {\n  for (const run of runs ?? []) {\n    for (const group of run.data?.main ?? []) {\n      for (const item of group ?? []) {\n        const j = item?.json ?? {};\n        if (\n          j.trace_id === x.trace_id &&\n          validId(j.span_id)\n        ) {\n          parentSpanId = j.span_id;\n        }\n      }\n    }\n  }\n}\n\nif (!parentSpanId) {\n  throw new Error(\n    'Cannot identify agent parent span; verify Return Agent Result'\n  );\n}\n\n// Deterministic span IDs prevent duplicate observations\n// when the same execution is reprocessed.\nfunction spanIdFor(executionId, node, index) {\n  const input = `${executionId}:${node}:${index}`;\n  let a = 2166136261;\n  let b = 2246822519;\n\n  for (let i = 0; i < input.length; i++) {\n    const c = input.charCodeAt(i);\n    a = Math.imul(a ^ c, 16777619) >>> 0;\n    b = Math.imul(b ^ c, 3266489917) >>> 0;\n  }\n\n  const id =\n    a.toString(16).padStart(8, '0') +\n    b.toString(16).padStart(8, '0');\n\n  return id === '0000000000000000'\n    ? '0000000000000001'\n    : id;\n}\n\nconst timestamp = t =>\n  String(BigInt(Math.round(t)) * 1000000n);\n\nconst startMs = Date.parse(\n  execution.startedAt ?? execution.createdAt ?? ''\n);\n\nconst endMs = Date.parse(\n  execution.stoppedAt ?? execution.finishedAt ?? ''\n);\n\nif (!Number.isFinite(startMs) || !Number.isFinite(endMs)) {\n  throw new Error('Execution timestamps unavailable');\n}\n\nconst attr = (key, value) => ({\n  key,\n  value: typeof value === 'number'\n    ? { intValue: String(value) }\n    : { stringValue: String(value) }\n});\n\nconst spans = x.model_usage_records.map((r, index) => ({\n  traceId: x.trace_id,\n  spanId: spanIdFor(x.execution_id, r.node, r.run_index ?? index),\n  parentSpanId,\n  name: `MIRA Model Usage — ${r.node}`,\n  kind: 3,\n  startTimeUnixNano: timestamp(startMs),\n  endTimeUnixNano: timestamp(endMs),\n  attributes: [\n    attr('langfuse.observation.type', 'generation'),\n    attr('gen_ai.provider.name', 'openai'),\n    attr('gen_ai.operation.name', 'chat'),\n    attr('gen_ai.request.model', r.model || 'unknown'),\n    attr('gen_ai.usage.input_tokens', r.input_tokens),\n    attr('gen_ai.usage.output_tokens', r.output_tokens),\n    attr('langfuse.observation.metadata.n8n_execution_id', x.execution_id),\n    attr('langfuse.observation.metadata.usage_source', 'n8n_execution_api')\n  ]\n}));\n\nreturn [{\n  json: {\n    execution_id: x.execution_id,\n    trace_id: x.trace_id,\n    parent_span_id: parentSpanId,\n    generation_count: spans.length,\n    otel_payload: {\n      resourceSpans: [{\n        resource: {\n          attributes: [\n            attr('service.name', 'MIRA-TokenCollector')\n          ]\n        },\n        scopeSpans: [{\n          scope: { name: 'mira-token-collector' },\n          spans\n        }]\n      }]\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        768,
+        0
+      ],
+      "id": "e7061cd9-cee4-41c1-88cc-7a2451c5600e",
+      "name": "Build Token OTEL"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://us.cloud.langfuse.com/api/public/otel/v1/traces",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.otel_payload }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        992,
+        0
+      ],
+      "id": "096b1f00-6731-4bbc-bed2-7a8de493500d",
+      "name": "Export Generation Usage to Langfuse"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "execution_id"
+            },
+            {
+              "name": "trace_id"
+            },
+            {
+              "name": "test_case_id"
+            },
+            {
+              "name": "agent_name"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "6810e8d0-8315-41ce-a56f-62566882e813",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://YOUR_N8N_INSTANCE.example.invalid/api/v1/executions/' + $('When Executed by Another Workflow').first().json.execution_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "includeData",
+              "value": "true"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        224,
+        0
+      ],
+      "id": "8a086725-d80a-4f27-b14e-cf7c113bd149",
+      "name": "Fetch Execution Details"
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * MIRA — Return Token Metrics v1.0\n * Returns verified generation usage to the caller.\n */\n\nconst usage = $('Resolve Langfuse Trace').first().json;\nconst otel = $('Build Token OTEL').first().json;\nconst exportResult = $input.first().json;\n\n\nconst accepted =\n  exportResult?.name === 'otel-ingestion-job' &&\n  exportResult?.data?.payload?.authCheck?.validKey === true;\n\nreturn [{\n  json: {\n    execution_id: usage.execution_id,\n    workflow_id: usage.workflow_id,\n    trace_id: usage.trace_id,\n\n    test_case_id:\n      $('When Executed by Another Workflow')\n        .first().json.test_case_id ?? null,\n\n    agent_name:\n      $('When Executed by Another Workflow')\n        .first().json.agent_name ?? null,\n\n    model:\n      usage.model_usage_records?.[0]?.model ?? null,\n\n    generation_input_tokens:\n      usage.generation_input_tokens,\n\n    generation_output_tokens:\n      usage.generation_output_tokens,\n\n    generation_total_tokens:\n      usage.generation_total_tokens,\n\n    model_call_count:\n      usage.model_call_count,\n\n    langfuse_export_submitted: accepted,\n\n    langfuse_ingestion_confirmed: false,\n\n    generation_observation_count:\n      otel.generation_count\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1184,
+        -16
+      ],
+      "id": "1bebf614-3804-456f-a7af-4266fb954baa",
+      "name": "Return Token Metrics"
+    }
+  ],
+  "connections": {
+    "Extract Model Usage": {
+      "main": [
+        [
+          {
+            "node": "Resolve Langfuse Trace",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve Langfuse Trace": {
+      "main": [
+        [
+          {
+            "node": "Build Token OTEL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Token OTEL": {
+      "main": [
+        [
+          {
+            "node": "Export Generation Usage to Langfuse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Fetch Execution Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Execution Details": {
+      "main": [
+        [
+          {
+            "node": "Extract Model Usage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Export Generation Usage to Langfuse": {
+      "main": [
+        [
+          {
+            "node": "Return Token Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "nodeGroups": [],
+  "tags": []
+}
