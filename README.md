@@ -129,10 +129,33 @@ mira-ai-project-intelligence/
 │   ├── baseline-evaluation.xlsx   # T1–T12, actual responses, score history
 │   └── evaluation-summary.md     # Run 5814 + limitations
 ├── screenshots/
-│   ├── architecture.png
-│   ├── n8n-workflow.png
-│   ├── mira-chat.png
-│   └── langfuse-trace.png
+│  ### Implementation Screenshots and Execution Evidence
+
+MIRA's implementation is documented through 39 screenshots capturing n8n workflows, successful executions, project-data management, evaluation infrastructure, observability, and human-in-the-loop approval.
+
+**Core architecture**
+- [MIRA Orchestrator Workflow](Screenshots/06_MIRA_Orchestrator_Workflow.png)
+- [MIRA Chat Interface](Screenshots/05_MIRA_Chat_Interface_Workflow.png)
+- [MIRA Project Selector](Screenshots/04_MIRA_Project_Selector_Workflow.png)
+- [MIRA Data Upload](Screenshots/01_MIRA_Data_Upload_Overview.png)
+
+**Specialized AI agents**
+- [Planner Agent](Screenshots/11_MIRA_Planner_Agent_Execution.png)
+- [Risk Assessor](Screenshots/12_MIRA_Risk_Assessor_Agent_Execution.png)
+- [Status Reporter](Screenshots/13_MIRA_Status_Reporter_Agent_Execution.png)
+- [Milestone Tracker](Screenshots/14_MIRA_Milestone_Tracker_Agent_Execution.png)
+- [Stakeholder Update](Screenshots/15_MIRA_Stakeholder_Update_Agent_Execution.png)
+
+**Evaluation, observability, and governance**
+- [LLM-as-Judge](Screenshots/16_MIRA_LLM_As_Judge_Evaluator_Execution.png)
+- [Langfuse Trace Exporter](Screenshots/17_MIRA_Langfuse_Trace_Exporter_Execution.png)
+- [Token Usage Collector](Screenshots/18_MIRA_Token_Usage_Collector_Execution.png)
+- [Review Dispatcher](Screenshots/19_MIRA_Review_Dispatcher_Execution.png)
+- [Evaluation Harness](Screenshots/20_MIRA_Evaluation_Harness_Workflow.png)
+
+For additional workflow details, execution evidence, approved reports, and data-table screenshots, see the [complete Screenshots directory](Screenshots/).
+
+The screenshots demonstrate the implementation and selected successful executions. They do not independently establish production readiness or universal accuracy.
 └── presentation/                 # Summary slide deck for the submission
 This tree is the intended submission organization. Files are not considered included until uploaded to those paths.
 Rubric navigation
