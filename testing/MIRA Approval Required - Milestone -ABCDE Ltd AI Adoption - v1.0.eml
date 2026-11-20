@@ -1,0 +1,506 @@
+Received: from 498586711441
+	named unknown
+	by gmailapi.google.com
+	with HTTPREST;
+	Thu, 19 Nov 2026 06:57:53 -0800
+To: srinivasallenki99@gmail.com
+Subject: MIRA Approval Required - ABCDE Ltd AI Adoption - v1.0 
+Message-Id: <CAFmoWyf8Nv8aQoEZDQGi0AGxe--XvuJjVzbhsWZ4wiH2MqbXRQ@mail.gmail.com>
+Content-Transfer-Encoding: quoted-printable
+Date: Thu, 19 Nov 2026 06:57:53 -0800
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+From: Srinivas Allenki <srinivasallenki99@gmail.com>
+
+
+<!DOCTYPE html>
+<html lang=3D'en'>
+
+<head>
+	<meta charset=3D"UTF-8">
+	<meta name=3D"viewport" content=3D"width=3Ddevice-width, initial-scale=3D1=
+.0">
+	<title>My form</title>
+</head>
+
+<body
+	style=3D"font-family: Arial, =
+sans-serif; font-size: 12px; background-color: #fbfcfe; margin: 0; padding:=
+ 0;">
+	<table width=3D"100%" cellpadding=3D"0" cellspacing=3D"0"
+		style=3D"background-color:#fbfcfe; border: 1px solid #dbdfe7; =
+border-radius: 8px;">
+		<tr>
+			<td align=3D"center" style=3D"padding: 24px=
+ 0;">
+				<table width=3D"448" cellpadding=3D"0" cellspacing=3D"0" =
+border=3D"0"
+					style=3D"width: 100%; max-width: 448px; background-color:=
+ #ffffff; border: 1px solid #dbdfe7; border-radius: 8px; padding: 24px; =
+box-shadow: 0px 4px 16px rgba(99, 77, 255, 0.06);">
+					<tr>
+						<td
+							style=3D"text-align: center; padding-top: 8px; font-family: Arial, =
+sans-serif; font-size: 14px; color: #7e8186;">
+							<p =
+style=3D"white-space: pre-line;"><div style=3D"
+      font-family:Arial,=
+sans-serif;
+      max-width:750px;
+      margin:auto;
+      line-height:1.6;
+      color:#222;
+    ">
+
+      <h2>MIRA =E2=80=94 =
+Review & Approval Required</h2>
+
+      <p>Hello,</p>
+
+      <p>
+        A new MIRA project intelligence output
+        is ready for your =
+review.
+      </p>
+
+      <p><strong>Project:</strong>
+        ABCDE Ltd AI Adoption</p>
+
+      <p><strong>Run ID:</strong>
+        6039</p>
+
+      <p><strong>Review ID:</strong>
+        REV-6045</p>
+
+      <p><strong>Capability:</strong>
+        milestone</p>
+
+      <p><strong>Review Type:</strong>
+        report</p>
+
+      <p><strong>Version:</strong>
+        1.0</p>
+
+      <p><strong>Status:</strong>
+        Pending Review</p>
+
+      <hr>
+
+     =20
+      <h3>Draft Report for Review</h3>
+      <div style=3D"
+        white-space:pre-wrap;
+        font-family:Arial,sans-serif;
+        font-size:13px;
+        line-height:1.5;
+        text-align:left;
+        border:1px solid #ddd;
+        padding:16px;
+      "># MIRA PROJECT INTELLIGENCE =E2=80=94 DRAFT
+
+**Execution:** ok
+**Overall validation:** passed
+**Snapshot:** ABCDE-LTD-AI-ADOPTION-20261102=
+021744-021e119b
+**Run ID:** 6039
+**Reports returned:** 1
+
+
+---
+
+# MILESTONE TRACKER
+
+**Report validation:** PARTIAL
+**Generated at:** 2026-11-19T14:57:48.474Z
+**Summary:** Authoritative =
+sources (project_timeline.csv and sample_task_board.csv) do not provide =
+calendar dates for the timeline milestones =E2=80=94 they are specified by =
+relative weeks only. The task board contains calendar due dates for =
+specific tasks but not for the timeline milestones. Because there is no =
+approved project start date or calendar mapping for timeline weeks, =
+calendar-based predictions for "next 2 weeks" cannot be established from =
+the approved snapshot. Below are the extracted phases, all documented =
+milestones (with target_week and target_date set to null where calendar =
+dates are not provided), the single documented blocked task, and data gaps.
+
+## Milestones
+
+- **Project charter signed off**
+  - phase name: Project =
+Initiation
+  - source reference: project_timeline.csv
+- **Team structure finalized**
+  - phase name: Project Initiation
+  - source reference: project_timeline.csv
+- **Current systems audit =
+report**
+  - phase name: Current State Analysis
+  - source reference: =
+project_timeline.csv
+- **Gap analysis report**
+  - phase name: Current =
+State Analysis
+  - source reference: project_timeline.csv
+- **Final list of prioritized use cases with success criteria**
+  - phase name: Use Case Selection
+  - source reference: project_timeline.=
+csv
+- **Working prototype models**
+  - phase name: Pilot Design
+  - source reference: project_timeline.csv
+- **Data pipelines established**
+  - phase name: Pilot Design
+  - source reference: project_timeline.csv
+- **Pilot results report**
+  - phase name: Pilot Implementation
+  - source reference: project_timeline.csv
+- **User feedback and =
+performance metrics**
+  - phase name: Pilot Implementation
+  - source reference: project_timeline.csv
+- **Updated models and process =
+refinements**
+  - phase name: Evaluation & Iteration
+  - source reference: project_timeline.csv
+- **Full production rollout**
+  - phase name: Full Deployment
+  - source reference: project_timeline.csv
+- **Training sessions completed**
+  - phase name: Full Deployment
+  - source reference: project_timeline.csv
+- **Project closure report**
+  - phase name: Monitoring & Review
+  - source reference: project_timeline.=
+csv
+- **Recommendations for future scaling**
+  - phase name: Monitoring & =
+Review
+  - source reference: project_timeline.csv
+
+## Data Gaps
+
+- Timeline milestones are specified only in relative weeks; no approved =
+project start date or calendar mapping provided in the snapshot, so =
+calendar dates for milestones cannot be derived.
+- Project timeline =
+deliverables lack explicit target_week or target_date fields in the =
+authoritative timeline (project_timeline.csv). All milestone dates set to =
+null accordingly.
+- Task board contains task-level calendar dates, but =
+these are not mapped to timeline milestones; no authoritative mapping =
+present in the snapshot to convert weeks->calendar dates.
+
+## Source References
+
+- project_timeline.csv
+- AI Adoption Project Timeline=
+.pdf
+- sample_task_board.csv
+
+<details>
+<summary>Complete structured report=
+ data</summary>
+
+```json
+{
+  "project_name": "ABCDE Ltd AI Adoption",
+  "summary": "Authoritative sources (project_timeline.csv and =
+sample_task_board.csv) do not provide calendar dates for the timeline =
+milestones =E2=80=94 they are specified by relative weeks only. The task =
+board contains calendar due dates for specific tasks but not for the =
+timeline milestones. Because there is no approved project start date or =
+calendar mapping for timeline weeks, calendar-based predictions for \"next =
+2 weeks\" cannot be established from the approved snapshot. Below are the =
+extracted phases, all documented milestones (with target_week and =
+target_date set to null where calendar dates are not provided), the single =
+documented blocked task, and data gaps.",
+  "phases": [
+    {
+      "phase_name": "Project Initiation",
+      "start_week": 1,
+      "end_week": 2,
+      "source_reference": "project_timeline.csv"
+    },
+    {
+      "phase_name": "Current State Analysis",
+      "start_week": 3,
+      "end_week": 4,
+      "source_reference": =
+"project_timeline.csv"
+    },
+    {
+      "phase_name": "Use Case =
+Selection",
+      "start_week": 5,
+      "end_week": 6,
+      "source_reference": "project_timeline.csv"
+    },
+    {
+      "phase_name": "Pilot Design",
+      "start_week": 7,
+      "end_week": 10,
+      "source_reference": "project_timeline.csv"
+    },
+    {
+      "phase_name": "Pilot Implementation",
+      "start_week": 11,
+      "end_week": 14,
+      "source_reference": =
+"project_timeline.csv"
+    },
+    {
+      "phase_name": "Evaluation & =
+Iteration",
+      "start_week": 15,
+      "end_week": 16,
+      "source_reference": "project_timeline.csv"
+    },
+    {
+      "phase_name": "Full Deployment",
+      "start_week": 17,
+      "end_week": 22,
+      "source_reference": "project_timeline.csv"
+    },
+    {
+      "phase_name": "Monitoring & Review",
+      "start_week": 23,
+      "end_week": 24,
+      "source_reference": =
+"project_timeline.csv"
+    }
+  ],
+  "milestones": [
+    {
+      "name": "Project charter signed off",
+      "phase_name": "Project =
+Initiation",
+      "target_week": null,
+      "target_date": null,
+      "source_reference": "project_timeline.csv"
+    },
+    {
+      "name": "Team structure finalized",
+      "phase_name": "Project =
+Initiation",
+      "target_week": null,
+      "target_date": null,
+      "source_reference": "project_timeline.csv"
+    },
+    {
+      "name": "Current systems audit report",
+      "phase_name": "Current =
+State Analysis",
+      "target_week": null,
+      "target_date": null,
+      "source_reference": "project_timeline.csv"
+    },
+    {
+      "name": "Gap analysis report",
+      "phase_name": "Current State =
+Analysis",
+      "target_week": null,
+      "target_date": null,
+      "source_reference": "project_timeline.csv"
+    },
+    {
+      "name": "Final list of prioritized use cases with success criteria",
+      "phase_name": "Use Case Selection",
+      "target_week": null,
+      "target_date": null,
+      "source_reference": "project_timeline.csv"
+    },
+    {
+      "name": "Working prototype models",
+      "phase_name": "Pilot Design",
+      "target_week": null,
+      "target_date": null,
+      "source_reference": "project_timeline.csv"
+    },
+    {
+      "name": "Data pipelines established",
+      "phase_name": "Pilot Design",
+      "target_week": null,
+      "target_date": null,
+      "source_reference": "project_timeline.csv"
+    },
+    {
+      "name": "Pilot results report",
+      "phase_name": =
+"Pilot Implementation",
+      "target_week": null,
+      "target_date": =
+null,
+      "source_reference": "project_timeline.csv"
+    },
+    {
+      "name": "User feedback and performance metrics",
+      "phase_name": "Pilot Implementation",
+      "target_week": null,
+      "target_date": null,
+      "source_reference": "project_timeline.csv"
+    },
+    {
+      "name": "Updated models and process refinements",
+      "phase_name": "Evaluation & Iteration",
+      "target_week": null,
+      "target_date": null,
+      "source_reference": "project_timeline.csv"
+    },
+    {
+      "name": "Full production rollout",
+      "phase_name": "Full Deployment",
+      "target_week": null,
+      "target_date": null,
+      "source_reference": "project_timeline.csv"
+    },
+    {
+      "name": "Training sessions completed",
+      "phase_name": "Full Deployment",
+      "target_week": null,
+      "target_date": null,
+      "source_reference": "project_timeline.csv"
+    },
+    {
+      "name": "Project closure report",
+      "phase_name": "Monitoring & Review",
+      "target_week": null,
+      "target_date": null,
+      "source_reference": "project_timeline.csv"
+    },
+    {
+      "name": "Recommendations for future scaling",
+      "phase_name": "Monitoring & Review",
+      "target_week": null,
+      "target_date": null,
+      "source_reference": "project_timeline.csv"
+    }
+  ],
+  "blocked_tasks": [
+    {
+      "task_id": "T024",
+      "task_name": "Security review of AI infrastructure",
+      "status": "Blocked",
+      "assignee": "James Wong",
+      "due_date": "2026-05-26",
+      "blocker_reason": "waiting for =
+security team availability",
+      "source_reference": "sample_task_board.=
+csv"
+    }
+  ],
+  "milestone_alerts": [],
+  "source_references": [
+    "project_timeline.csv",
+    "AI Adoption Project Timeline.pdf",
+    "sample_task_board.csv"
+  ],
+  "data_gaps": [
+    "Timeline milestones =
+are specified only in relative weeks; no approved project start date or =
+calendar mapping provided in the snapshot, so calendar dates for milestones=
+ cannot be derived.",
+    "Project timeline deliverables lack explicit =
+target_week or target_date fields in the authoritative timeline =
+(project_timeline.csv). All milestone dates set to null accordingly.",
+    "Task board contains task-level calendar dates, but these are not =
+mapped to timeline milestones; no authoritative mapping present in the =
+snapshot to convert weeks->calendar dates."
+  ],
+  "agent": "milestone",
+  "snapshot_id": "ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b",
+  "generated_at": "2026-11-19T14:57:48.474Z",
+  "status": "ok",
+  "phase_count": 8,
+  "milestone_count": 14,
+  "blocked_count": 1,
+  "validation_status": "PARTIAL",
+  "trace_id": "d446879b1367b145aee6c9b1d7=
+da0e0c",
+  "span_id": "6694952f8d737ba0"
+}
+```
+</details></div>
+   =20
+
+      <hr>
+
+      <p>
+        Please review the content above before
+        selecting Approve or Decline using the
+        approval buttons =
+below.
+      </p>
+
+      <p>
+        Approval applies only to this specific
+        review request and report version.
+      </p>
+
+      <p>
+        This is a DRAFT generated by MIRA.
+        Approval does not =
+automatically authorize
+        external distribution.
+      </p>
+
+      <p>
+        Thank you,
+
+        MIRA Project Intelligence Assistant
+      </p>
+
+    </div></p>
+						</td>
+					</tr>
+					<tr>
+						<td align=3D"center" style=3D"padding-top: 12px;">
+								<a href=3D"https://agentic09.app.n8n.cloud/webhook-waiting/6045/888=
+37c9a-e62b-4393-bc7a-3a70c5d30582?approved=3Dfalse&signature=3D0f43b5f1490d=
+2ea7cb76dc7dfd6fee0419fb84492d395ebe75f18d309796505a" target=3D"_blank" =
+style=3D"display:inline-block; text-decoration:none; background-color:#fff;=
+ color:#4a4a4a; padding:12px 24px; font-family: Arial,sans-serif; =
+font-size:14px;font-weight:600; border:1px solid #d1d1d1; =
+border-radius:6px; min-width:120px; margin: 12px 6px 0 6px;">Decline</a>
+<a href=3D"https://agentic09.app.n8n.cloud/webhook-waiting/6045/88837c9a-e6=
+2b-4393-bc7a-3a70c5d30582?approved=3Dtrue&signature=3Df65f074f74d0e05bd5ee6=
+8c3f1594fd23a92e80a43ad951d6cfe2a3d4532ccca" target=3D"_blank" =
+style=3D"display:inline-block; text-decoration:none; =
+background-color:#ff6d5a; color: #fff; padding:12px 24px; font-family: =
+Arial,sans-serif; font-size:14px;font-weight:600; border-radius:6px; =
+min-width:120px; margin: 12px 2px 0 2px;">Approve</a>
+						</td>
+					</tr>
+				</table>
+
+				<!-- Divider -->
+				<table width=3D"100%" =
+cellpadding=3D"0" cellspacing=3D"0" border=3D"0" style=3D"margin-bottom: =
+24px;">
+					<tr>
+						<td style=3D"border-top: 0px solid #dbdfe7;"></td>
+					</tr>
+				</table>
+
+				<!-- Footer -->
+				<table width=3D"100%" =
+cellpadding=3D"0" cellspacing=3D"0" border=3D"0"
+					style=3D"text-align: =
+center; color: #7e8186; font-family: Arial, sans-serif; font-size: 12px;">
+					<tr>
+						<td>
+							<a href=3Dhttps://n8n.io/?=
+utm_source=3Dn8n-internal&utm_medium=3Dsend-and-wait&utm_campaign=3D2c61d83=
+45b54d6e301f592cc929479174ed5e05854bbf9ad2d4e7b0dcc2b6f7f
+								target=3D"_blank" style=3D"color: #7e8186; text-decoration: =
+none;">Automated with
+								n8n</a>
+						</td>
+					</tr>
+				</table>
+			</td>
+		</tr>
+	</table>
+</body>
+
+</html>
+=09

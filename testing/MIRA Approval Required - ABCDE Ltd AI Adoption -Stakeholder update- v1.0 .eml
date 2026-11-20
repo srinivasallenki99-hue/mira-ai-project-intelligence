@@ -1,0 +1,352 @@
+Received: from 498586711441
+	named unknown
+	by gmailapi.google.com
+	with HTTPREST;
+	Thu, 19 Nov 2026 06:59:24 -0800
+To: srinivasallenki99@gmail.com
+Subject: MIRA Approval Required - ABCDE Ltd AI Adoption - v1.0 
+Message-Id: <CAFmoWyeoL9ugTWjyERC9+q8bN6WjehE6RcFVpjezc9hGVdjz6w@mail.gmail.com>
+Content-Transfer-Encoding: quoted-printable
+Date: Thu, 19 Nov 2026 06:59:24 -0800
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+From: Srinivas Allenki <srinivasallenki99@gmail.com>
+
+
+<!DOCTYPE html>
+<html lang=3D'en'>
+
+<head>
+	<meta charset=3D"UTF-8">
+	<meta name=3D"viewport" content=3D"width=3Ddevice-width, initial-scale=3D1=
+.0">
+	<title>My form</title>
+</head>
+
+<body
+	style=3D"font-family: Arial, =
+sans-serif; font-size: 12px; background-color: #fbfcfe; margin: 0; padding:=
+ 0;">
+	<table width=3D"100%" cellpadding=3D"0" cellspacing=3D"0"
+		style=3D"background-color:#fbfcfe; border: 1px solid #dbdfe7; =
+border-radius: 8px;">
+		<tr>
+			<td align=3D"center" style=3D"padding: 24px=
+ 0;">
+				<table width=3D"448" cellpadding=3D"0" cellspacing=3D"0" =
+border=3D"0"
+					style=3D"width: 100%; max-width: 448px; background-color:=
+ #ffffff; border: 1px solid #dbdfe7; border-radius: 8px; padding: 24px; =
+box-shadow: 0px 4px 16px rgba(99, 77, 255, 0.06);">
+					<tr>
+						<td
+							style=3D"text-align: center; padding-top: 8px; font-family: Arial, =
+sans-serif; font-size: 14px; color: #7e8186;">
+							<p =
+style=3D"white-space: pre-line;"><div style=3D"
+      font-family:Arial,=
+sans-serif;
+      max-width:750px;
+      margin:auto;
+      line-height:1.6;
+      color:#222;
+    ">
+
+      <h2>MIRA =E2=80=94 =
+Review & Approval Required</h2>
+
+      <p>Hello,</p>
+
+      <p>
+        A new MIRA project intelligence output
+        is ready for your =
+review.
+      </p>
+
+      <p><strong>Project:</strong>
+        ABCDE Ltd AI Adoption</p>
+
+      <p><strong>Run ID:</strong>
+        6048</p>
+
+      <p><strong>Review ID:</strong>
+        REV-6052</p>
+
+      <p><strong>Capability:</strong>
+        stakeholder_update</p>
+
+      <p><strong>Review Type:</strong>
+        report</p>
+
+      <p><strong>Version:</strong>
+        1.0</p>
+
+      <p><strong>Status:</strong>
+        Pending Review</p>
+
+      <hr>
+
+     =20
+      <h3>Draft Report for Review</h3>
+      <div style=3D"
+        white-space:pre-wrap;
+        font-family:Arial,sans-serif;
+        font-size:13px;
+        line-height:1.5;
+        text-align:left;
+        border:1px solid #ddd;
+        padding:16px;
+      "># MIRA PROJECT INTELLIGENCE =E2=80=94 DRAFT
+
+**Execution:** ok
+**Overall validation:** passed
+**Snapshot:** ABCDE-LTD-AI-ADOPTION-20261102=
+021744-021e119b
+**Run ID:** 6048
+**Reports returned:** 1
+
+
+---
+
+# STAKEHOLDER UPDATE
+
+**Report validation:** passed
+**Generated at:** 2026-11-19T14:59:21.909Z
+
+## Executive Summary
+
+Not provided
+
+<details>
+<summary>Complete structured report data</summary>
+
+```json
+{
+  "agent": "stakeholder_update",
+  "snapshot_id": =
+"ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b",
+  "generated_at": =
+"2026-11-19T14:59:21.909Z",
+  "status": "ok",
+  "update": {
+    "project_name": "ABCDE Ltd AI Adoption",
+    "audience": "Stakeholders =
+=E2=80=94 audience to be confirmed",
+    "sprint": "Sprint 2",
+    "subject": "DRAFT: Sprint 2 Progress Update =E2=80=94 ABCDE Ltd AI =
+Adoption",
+    "body": "DRAFT
+
+Project: ABCDE Ltd AI Adoption
+Sprint: Sprint 2
+
+Executive summary:
+Sprint 2 focused on assessing current =
+data infrastructure and mapping logistics workflows to inform use-case =
+prioritization and data preparation. Recorded task statuses in the supplied=
+ snapshot show two completed tasks and one work-in-progress within Sprint 2=
+. No Sprint 2 tasks are recorded as Blocked in the supplied snapshot.
+
+Completed in this sprint (recorded in snapshot):
+- T004: Audit existing =
+data infrastructure =E2=80=94 Done (Assignee: Priya Nair) =E2=80=94 Due =
+date: 2026-04-18. [source: sample_task_board.csv#T004]
+- T005: Map current logistics workflows =E2=80=94 Done (Assignee: James =
+Wong) =E2=80=94 Due date: 2026-04-18. [source: sample_task_board.csv#T005]
+
+In progress (recorded in snapshot):
+- T006: Identify data gaps and quality =
+issues =E2=80=94 In Progress (Assignee: Priya Nair) =E2=80=94 Due date: =
+2026-04-21. [source: sample_task_board.csv#T006]
+
+Remaining tasks in this =
+sprint (recorded in snapshot):
+- None. (All Sprint 2 tasks in the snapshot =
+are either Done or In Progress.)
+
+Blockers:
+No blocked tasks are recorded =
+for this sprint in the supplied snapshot.
+
+Relevant project-level risks =
+(documented in supplied snapshot):
+- R01: Incomplete or unstructured data =
+=E2=80=94 Impact: Poor model performance and inaccurate outcomes. [source: =
+project_risks.csv#R01]
+  Note: R01 is relevant to Sprint 2 activities (data=
+ audit, gap identification) as recorded in the task board.
+
+Decisions needed:
+- None explicitly recorded for Sprint 2 in the supplied =
+snapshot.
+
+Action items (from supplied evidence):
+- None explicitly =
+recorded as standalone action items in Sprint 2 beyond the task records =
+above.
+
+Project health assessment:
+- UNKNOWN. The supplied project =
+documents do not include documented sprint-level health criteria or an =
+approved calculation method for RAG assignment. A health rating cannot be =
+reliably determined from task counts alone per reporting rules.
+
+Data limitations and gaps in the supplied snapshot:
+- The supplied project documents do not establish when the task records =
+were last updated. Snapshot currency cannot be independently verified. =
+[source: sample_task_board.csv =E2=80=94 validation metadata indicates =
+freshness_status: unknown]
+- No documented sprint-level health criteria or =
+RAG thresholds in the supplied evidence; this prevents an evidence-based =
+health rating. [source: project_timeline.csv; project_description.txt]
+
+Sources used:
+- sample_task_board.csv#T004, sample_task_board.csv#T005, =
+sample_task_board.csv#T006
+- project_risks.csv#R01
+- project_timeline.csv
+- project_description.txt
+
+This message is a DRAFT stakeholder update for =
+review. It has not been sent or approved.",
+    "reporting_period": null,
+    "executive_summary": "Sprint 2 focused on data infrastructure audit and=
+ workflow mapping. Two tasks are recorded as Done and one as In Progress. =
+No blocked tasks are recorded for Sprint 2 in the supplied snapshot.",
+    "current_status": "UNKNOWN",
+    "accomplishments": [
+      "T004: Audit existing data infrastructure =E2=80=94 Done (Assignee: =
+Priya Nair) =E2=80=94 Due date: 2026-04-18. [sample_task_board.csv#T004]",
+      "T005: Map current logistics workflows =E2=80=94 Done (Assignee: =
+James Wong) =E2=80=94 Due date: 2026-04-18. [sample_task_board.csv#T005]"
+    ],
+    "upcoming_activities": [
+      "T006: Identify data gaps and =
+quality issues =E2=80=94 In Progress (Assignee: Priya Nair) =E2=80=94 Due =
+date: 2026-04-21. [sample_task_board.csv#T006]"
+    ],
+    "risks_and_blockers": [
+      {
+        "description": "R01: Incomplete=
+ or unstructured data",
+        "impact": "Poor model performance and =
+inaccurate outcomes",
+        "owner": null,
+        "source_reference": =
+"project_risks.csv#R01"
+      }
+    ],
+    "decisions_needed": [],
+    "action_items": [],
+    "source_references": [
+      "sample_task_board=
+.csv#T004",
+      "sample_task_board.csv#T005",
+      "sample_task_board.=
+csv#T006",
+      "project_risks.csv#R01",
+      "project_timeline.csv",
+      "project_description.txt"
+    ],
+    "data_gaps": [
+      "The supplied project documents do not establish when the task =
+records were last updated. Snapshot currency cannot be independently =
+verified.",
+      "No documented sprint-level health criteria or RAG =
+thresholds were found in the supplied evidence; an evidence-based health =
+rating cannot be calculated."
+    ],
+    "draft_only": true
+  },
+  "trace_id": "e1dcaf7f4ac1c623b9f8cd680ac0f4ec",
+  "span_id": =
+"7f105571664e94b9"
+}
+```
+</details></div>
+   =20
+
+      <hr>
+
+      <p>
+        Please review the content above before
+        selecting Approve or=
+ Decline using the
+        approval buttons below.
+      </p>
+
+      <p>
+        Approval applies only to this specific
+        review request and =
+report version.
+      </p>
+
+      <p>
+        This is a DRAFT generated by =
+MIRA.
+        Approval does not automatically authorize
+        external distribution.
+      </p>
+
+      <p>
+        Thank you,
+
+        MIRA Project Intelligence Assistant
+      </p>
+
+    </div></p>
+						</td>
+					</tr>
+					<tr>
+						<td align=3D"center" =
+style=3D"padding-top: 12px;">
+								<a href=3D"https://agentic09.app.n8n.=
+cloud/webhook-waiting/6052/88837c9a-e62b-4393-bc7a-3a70c5d30582?=
+approved=3Dfalse&signature=3Db9cf478f4d8cb97c22141ba0ffc2587b1dd0f9744d05bb=
+f5f11243e11017cdc2" target=3D"_blank" style=3D"display:inline-block; =
+text-decoration:none; background-color:#fff; color:#4a4a4a; padding:12px =
+24px; font-family: Arial,sans-serif; font-size:14px;font-weight:600; =
+border:1px solid #d1d1d1; border-radius:6px; min-width:120px; margin: 12px =
+6px 0 6px;">Decline</a>
+<a href=3D"https://agentic09.app.n8n.=
+cloud/webhook-waiting/6052/88837c9a-e62b-4393-bc7a-3a70c5d30582?=
+approved=3Dtrue&signature=3Da8df228823eca2bb5613c7457e8a4ebd24b7a25ae823f12=
+f2196cdce2f67e854" target=3D"_blank" style=3D"display:inline-block; =
+text-decoration:none; background-color:#ff6d5a; color: #fff; padding:12px =
+24px; font-family: Arial,sans-serif; font-size:14px;font-weight:600; =
+border-radius:6px; min-width:120px; margin: 12px 2px 0 2px;">Approve</a>
+						</td>
+					</tr>
+				</table>
+
+				<!-- Divider -->
+				<table width=3D"100%" cellpadding=3D"0" cellspacing=3D"0" border=3D"0" =
+style=3D"margin-bottom: 24px;">
+					<tr>
+						<td style=3D"border-top: =
+0px solid #dbdfe7;"></td>
+					</tr>
+				</table>
+
+				<!-- Footer -->
+				<table width=3D"100%" cellpadding=3D"0" cellspacing=3D"0" border=3D"0"
+					style=3D"text-align: center; color: #7e8186; font-family: Arial, =
+sans-serif; font-size: 12px;">
+					<tr>
+						<td>
+							<a href=3Dhttps://n8n.io/?utm_source=3Dn8n-internal&utm_medium=3Dsen=
+d-and-wait&utm_campaign=3D2c61d8345b54d6e301f592cc929479174ed5e05854bbf9ad2=
+d4e7b0dcc2b6f7f
+								target=3D"_blank" style=3D"color: #7e8186; =
+text-decoration: none;">Automated with
+								n8n</a>
+						</td>
+					</tr>
+				</table>
+			</td>
+		</tr>
+	</table>
+</body>
+
+</html>
+=09

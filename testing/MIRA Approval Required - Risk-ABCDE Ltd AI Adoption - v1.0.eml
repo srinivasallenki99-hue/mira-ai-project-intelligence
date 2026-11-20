@@ -1,0 +1,359 @@
+Received: from 498586711441
+	named unknown
+	by gmailapi.google.com
+	with HTTPREST;
+	Thu, 19 Nov 2026 06:45:56 -0800
+To: srinivasallenki99@gmail.com
+Subject: MIRA Approval Required - ABCDE Ltd AI Adoption - v1.0 
+Message-Id: <CAFmoWydE_GLEiaw6snWh9HpXTTcZxZW1+C7xB+yvna3GH+nqFA@mail.gmail.com>
+Content-Transfer-Encoding: quoted-printable
+Date: Thu, 19 Nov 2026 06:45:56 -0800
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+From: Srinivas Allenki <srinivasallenki99@gmail.com>
+
+
+<!DOCTYPE html>
+<html lang=3D'en'>
+
+<head>
+	<meta charset=3D"UTF-8">
+	<meta name=3D"viewport" content=3D"width=3Ddevice-width, initial-scale=3D1=
+.0">
+	<title>My form</title>
+</head>
+
+<body
+	style=3D"font-family: Arial, =
+sans-serif; font-size: 12px; background-color: #fbfcfe; margin: 0; padding:=
+ 0;">
+	<table width=3D"100%" cellpadding=3D"0" cellspacing=3D"0"
+		style=3D"background-color:#fbfcfe; border: 1px solid #dbdfe7; =
+border-radius: 8px;">
+		<tr>
+			<td align=3D"center" style=3D"padding: 24px=
+ 0;">
+				<table width=3D"448" cellpadding=3D"0" cellspacing=3D"0" =
+border=3D"0"
+					style=3D"width: 100%; max-width: 448px; background-color:=
+ #ffffff; border: 1px solid #dbdfe7; border-radius: 8px; padding: 24px; =
+box-shadow: 0px 4px 16px rgba(99, 77, 255, 0.06);">
+					<tr>
+						<td
+							style=3D"text-align: center; padding-top: 8px; font-family: Arial, =
+sans-serif; font-size: 14px; color: #7e8186;">
+							<p =
+style=3D"white-space: pre-line;"><div style=3D"
+      font-family:Arial,=
+sans-serif;
+      max-width:750px;
+      margin:auto;
+      line-height:1.6;
+      color:#222;
+    ">
+
+      <h2>MIRA =E2=80=94 =
+Review & Approval Required</h2>
+
+      <p>Hello,</p>
+
+      <p>
+        A new MIRA project intelligence output
+        is ready for your =
+review.
+      </p>
+
+      <p><strong>Project:</strong>
+        ABCDE Ltd AI Adoption</p>
+
+      <p><strong>Run ID:</strong>
+        6013</p>
+
+      <p><strong>Review ID:</strong>
+        REV-6019</p>
+
+      <p><strong>Capability:</strong>
+        risk</p>
+
+      <p><strong>Review Type:</strong>
+        report</p>
+
+      <p><strong>Version:</strong>
+        1.0</p>
+
+      <p><strong>Status:</strong>
+        Pending Review</p>
+
+      <hr>
+
+     =20
+      <h3>Draft Report for Review</h3>
+      <div style=3D"
+        white-space:pre-wrap;
+        font-family:Arial,sans-serif;
+        font-size:13px;
+        line-height:1.5;
+        text-align:left;
+        border:1px solid #ddd;
+        padding:16px;
+      "># MIRA PROJECT INTELLIGENCE =E2=80=94 DRAFT
+
+**Execution:** ok
+**Overall validation:** passed
+**Snapshot:** ABCDE-LTD-AI-ADOPTION-20261102=
+021744-021e119b
+**Run ID:** 6013
+**Reports returned:** 1
+
+
+---
+
+# RISK ASSESSMENT
+
+**Report validation:** PARTIAL
+**Generated at:** =
+2026-11-19T14:45:52.853Z
+**Summary:** Top 3 risks for the ABCDE Ltd AI =
+Adoption project identified from the approved project risk register and =
+supporting project evidence (task board and risk document). Risks are =
+listed with their documented descriptions and mitigation strategies; =
+selection and ranking are qualitative and grounded in available evidence.
+
+## Risk Register
+
+  - risk id: R01
+  - category: Data Quality & =
+Availability
+  - risk challenge: Incomplete or unstructured data
+  - impact: Poor model performance and inaccurate outcomes
+  - mitigation strategy: Perform early data audits and implement robust =
+data governance
+  - source reference: project_risks.csv
+  - risk id: R09
+  - category: Security Vulnerabilities
+  - risk challenge: AI models =
+targeted by adversarial attacks
+  - impact: Data breaches and operational =
+risks
+  - mitigation strategy: Adopt AI security best practices and =
+penetration testing
+  - source reference: project_risks.csv
+  - risk id: R02
+  - category: Integration Issues
+  - risk challenge: =
+Difficulty integrating AI with legacy systems
+  - impact: Delays in =
+deployment and operational disruptions
+  - mitigation strategy: Plan =
+integration roadmap and use APIs/middleware
+  - source reference: =
+project_risks.csv
+
+## Data Gaps
+
+- No documented risk probabilities or =
+numerical risk scores in the approved risk register (project_risks.csv).
+- No designated risk owners, RAG/status, or mitigation progress fields for =
+each risk in the provided risks artefacts.
+- No formal mitigation timelines=
+ or completion dates for listed mitigation strategies in the risk register =
+or supporting files.
+- No evidence of residual risk assessments or =
+acceptance/approval records for individual risks in the supplied documents.
+
+## Source References
+
+- project_risks.csv
+- Risks and Challenges in AI =
+Adoption Project =E2=80=93 ABCDE Ltd.docx
+- sample_task_board.csv
+- project_timeline.csv
+- project_description.txt
+
+<details>
+<summary>Complete structured report data</summary>
+
+```json
+{
+  "project_name": "ABCDE Ltd AI Adoption",
+  "summary": "Top 3 risks for =
+the ABCDE Ltd AI Adoption project identified from the approved project risk=
+ register and supporting project evidence (task board and risk document). =
+Risks are listed with their documented descriptions and mitigation =
+strategies; selection and ranking are qualitative and grounded in available=
+ evidence.",
+  "risks": [
+    {
+      "risk_id": "R01",
+      "category": "Data Quality & Availability",
+      "risk_challenge": =
+"Incomplete or unstructured data",
+      "impact": "Poor model performance =
+and inaccurate outcomes",
+      "mitigation_strategy": "Perform early data =
+audits and implement robust data governance",
+      "source_reference": =
+"project_risks.csv"
+    },
+    {
+      "risk_id": "R09",
+      "category": "Security Vulnerabilities",
+      "risk_challenge": "AI =
+models targeted by adversarial attacks",
+      "impact": "Data breaches and=
+ operational risks",
+      "mitigation_strategy": "Adopt AI security best =
+practices and penetration testing",
+      "source_reference": =
+"project_risks.csv"
+    },
+    {
+      "risk_id": "R02",
+      "category": "Integration Issues",
+      "risk_challenge": "Difficulty=
+ integrating AI with legacy systems",
+      "impact": "Delays in deployment=
+ and operational disruptions",
+      "mitigation_strategy": "Plan =
+integration roadmap and use APIs/middleware",
+      "source_reference": =
+"project_risks.csv"
+    }
+  ],
+  "top_risk_ids": [
+    "R01",
+    "R09",
+    "R02"
+  ],
+  "ranking_basis": "Risks were prioritized qualitatively =
+using (1) direct project evidence of active issues and blockers in the task=
+ board, (2) likely impact to early pilots and go-live activities described =
+in the project timeline, and (3) the documented impacts in the approved =
+risk register. R01 (Data Quality) is elevated because task T006 ('Identify =
+data gaps and quality issues') is In Progress and the project depends on =
+historical demand data and pipelines (tasks T010=E2=80=93T011). R09 =
+(Security Vulnerabilities) is prioritized because task T024 ('Security =
+review of AI infrastructure') is Blocked, posing an immediate blocker to =
+safe deployment. R02 (Integration Issues) is included because integration =
+with legacy systems is explicitly called out in the register and =
+vendor/platform evaluation (task T009) and deployment planning tasks (T019,=
+ T021) remain pending, so integration risk could delay deployment.",
+  "source_references": [
+    "project_risks.csv",
+    "Risks and Challenges=
+ in AI Adoption Project =E2=80=93 ABCDE Ltd.docx",
+    "sample_task_board.=
+csv",
+    "project_timeline.csv",
+    "project_description.txt"
+  ],
+  "data_gaps": [
+    "No documented risk probabilities or numerical risk =
+scores in the approved risk register (project_risks.csv).",
+    "No designated risk owners, RAG/status, or mitigation progress fields =
+for each risk in the provided risks artefacts.",
+    "No formal mitigation =
+timelines or completion dates for listed mitigation strategies in the risk =
+register or supporting files.",
+    "No evidence of residual risk =
+assessments or acceptance/approval records for individual risks in the =
+supplied documents."
+  ],
+  "agent": "risk",
+  "snapshot_id": =
+"ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b",
+  "generated_at": =
+"2026-11-19T14:45:52.853Z",
+  "status": "ok",
+  "risk_count": 3,
+  "validation_status": "PARTIAL",
+  "trace_id": "dcc16c9c77e43e9cf35bda6e80=
+2de3a3",
+  "span_id": "f85b143fbd6a861f"
+}
+```
+</details></div>
+   =20
+
+      <hr>
+
+      <p>
+        Please review the content above before
+        selecting Approve or Decline using the
+        approval buttons =
+below.
+      </p>
+
+      <p>
+        Approval applies only to this specific
+        review request and report version.
+      </p>
+
+      <p>
+        This is a DRAFT generated by MIRA.
+        Approval does not =
+automatically authorize
+        external distribution.
+      </p>
+
+      <p>
+        Thank you,
+
+        MIRA Project Intelligence Assistant
+      </p>
+
+    </div></p>
+						</td>
+					</tr>
+					<tr>
+						<td align=3D"center" style=3D"padding-top: 12px;">
+								<a href=3D"https://agentic09.app.n8n.cloud/webhook-waiting/6019/888=
+37c9a-e62b-4393-bc7a-3a70c5d30582?approved=3Dfalse&signature=3D7e2bca74e684=
+a3b46382cc6787a457707270921c66908b9f0ae92143eadddd09" target=3D"_blank" =
+style=3D"display:inline-block; text-decoration:none; background-color:#fff;=
+ color:#4a4a4a; padding:12px 24px; font-family: Arial,sans-serif; =
+font-size:14px;font-weight:600; border:1px solid #d1d1d1; =
+border-radius:6px; min-width:120px; margin: 12px 6px 0 6px;">Decline</a>
+<a href=3D"https://agentic09.app.n8n.cloud/webhook-waiting/6019/88837c9a-e6=
+2b-4393-bc7a-3a70c5d30582?approved=3Dtrue&signature=3D531fbf384e6f4b1247cab=
+a0393b58e1a4c63ba77ba8bc12f0f476d46b2c5340f" target=3D"_blank" =
+style=3D"display:inline-block; text-decoration:none; =
+background-color:#ff6d5a; color: #fff; padding:12px 24px; font-family: =
+Arial,sans-serif; font-size:14px;font-weight:600; border-radius:6px; =
+min-width:120px; margin: 12px 2px 0 2px;">Approve</a>
+						</td>
+					</tr>
+				</table>
+
+				<!-- Divider -->
+				<table width=3D"100%" =
+cellpadding=3D"0" cellspacing=3D"0" border=3D"0" style=3D"margin-bottom: =
+24px;">
+					<tr>
+						<td style=3D"border-top: 0px solid #dbdfe7;"></td>
+					</tr>
+				</table>
+
+				<!-- Footer -->
+				<table width=3D"100%" =
+cellpadding=3D"0" cellspacing=3D"0" border=3D"0"
+					style=3D"text-align: =
+center; color: #7e8186; font-family: Arial, sans-serif; font-size: 12px;">
+					<tr>
+						<td>
+							<a href=3Dhttps://n8n.io/?=
+utm_source=3Dn8n-internal&utm_medium=3Dsend-and-wait&utm_campaign=3D2c61d83=
+45b54d6e301f592cc929479174ed5e05854bbf9ad2d4e7b0dcc2b6f7f
+								target=3D"_blank" style=3D"color: #7e8186; text-decoration: =
+none;">Automated with
+								n8n</a>
+						</td>
+					</tr>
+				</table>
+			</td>
+		</tr>
+	</table>
+</body>
+
+</html>
+=09

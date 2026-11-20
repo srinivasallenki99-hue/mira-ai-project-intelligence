@@ -1,0 +1,727 @@
+Received: from 498586711441
+	named unknown
+	by gmailapi.google.com
+	with HTTPREST;
+	Thu, 19 Nov 2026 11:23:34 -0800
+To: srinivasallenki99@gmail.com
+Subject: MIRA Approval Required - ABCDE Ltd AI Adoption - v1.0 
+Message-Id: <CAFmoWycVi_QSVbiVpNo2yFhUzmcSU_DbXmZB78JRh1ugLd5JHg@mail.gmail.com>
+Content-Transfer-Encoding: quoted-printable
+Date: Thu, 19 Nov 2026 11:23:34 -0800
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+From: Srinivas Allenki <srinivasallenki99@gmail.com>
+
+
+<!DOCTYPE html>
+<html lang=3D'en'>
+
+<head>
+	<meta charset=3D"UTF-8">
+	<meta name=3D"viewport" content=3D"width=3Ddevice-width, initial-scale=3D1=
+.0">
+	<title>My form</title>
+</head>
+
+<body
+	style=3D"font-family: Arial, =
+sans-serif; font-size: 12px; background-color: #fbfcfe; margin: 0; padding:=
+ 0;">
+	<table width=3D"100%" cellpadding=3D"0" cellspacing=3D"0"
+		style=3D"background-color:#fbfcfe; border: 1px solid #dbdfe7; =
+border-radius: 8px;">
+		<tr>
+			<td align=3D"center" style=3D"padding: 24px=
+ 0;">
+				<table width=3D"448" cellpadding=3D"0" cellspacing=3D"0" =
+border=3D"0"
+					style=3D"width: 100%; max-width: 448px; background-color:=
+ #ffffff; border: 1px solid #dbdfe7; border-radius: 8px; padding: 24px; =
+box-shadow: 0px 4px 16px rgba(99, 77, 255, 0.06);">
+					<tr>
+						<td
+							style=3D"text-align: center; padding-top: 8px; font-family: Arial, =
+sans-serif; font-size: 14px; color: #7e8186;">
+							<p =
+style=3D"white-space: pre-line;"><div style=3D"
+      font-family:Arial,=
+sans-serif;
+      max-width:750px;
+      margin:auto;
+      line-height:1.6;
+      color:#222;
+    ">
+
+      <h2>MIRA =E2=80=94 =
+Review & Approval Required</h2>
+
+      <p>Hello,</p>
+
+      <p>
+        A new MIRA project intelligence output
+        is ready for your =
+review.
+      </p>
+
+      <p><strong>Project:</strong>
+        ABCDE Ltd AI Adoption</p>
+
+      <p><strong>Run ID:</strong>
+        6063</p>
+
+      <p><strong>Review ID:</strong>
+        REV-6070</p>
+
+      <p><strong>Capability:</strong>
+        plan</p>
+
+      <p><strong>Review Type:</strong>
+        report</p>
+
+      <p><strong>Version:</strong>
+        1.0</p>
+
+      <p><strong>Status:</strong>
+        Pending Review</p>
+
+      <hr>
+
+     =20
+      <h3>Draft Report for Review</h3>
+      <div style=3D"
+        white-space:pre-wrap;
+        font-family:Arial,sans-serif;
+        font-size:13px;
+        line-height:1.5;
+        text-align:left;
+        border:1px solid #ddd;
+        padding:16px;
+      "># MIRA PROJECT INTELLIGENCE =E2=80=94 DRAFT
+
+**Execution:** ok
+**Overall validation:** passed
+**Snapshot:** ABCDE-LTD-AI-ADOPTION-20261102=
+021744-021e119b
+**Run ID:** 6063
+**Reports returned:** 1
+
+
+---
+
+# PROJECT PLAN
+
+**Report validation:** PASSED
+**Generated at:** =
+2026-11-19T19:23:28.518Z
+**Project:** AI Adoption Project - ABCDE Ltd.
+
+## Objectives
+
+- Reduce delivery delays by 15%
+- Lower operational costs by=
+ 10%
+- Improve service responsiveness
+- Integrate AI for demand forecasting=
+, route optimization, inventory management, and customer support
+
+## Scope
+
+- Implement phased AI adoption across selected logistics and supply-chain =
+functions at ABCDE Ltd., including assessment of current workflows and data=
+ infrastructure, pilot implementations in targeted departments, and scaling=
+ successful pilots to production. Focus areas include demand forecasting, =
+route optimization, inventory management, and customer support. Scope =
+boundaries and exclusions are not explicitly documented in the provided =
+project description.
+
+## Phases
+
+  - phase name: Project Initiation
+  - start week: 1
+  - end week: 2
+  - key activities: ["Define project =
+scope","Form cross-functional team","Initial stakeholder meeting"]
+  - milestones deliverables: ["Project charter signed off","Team structure =
+finalized"]
+  - source reference: project_timeline.csv (snapshot: =
+ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)
+  - phase name: Current =
+State Analysis
+  - start week: 3
+  - end week: 4
+  - key activities: =
+["Assess existing processes & systems","Identify data sources & gaps"]
+  - milestones deliverables: ["Current systems audit report","Gap analysis =
+report"]
+  - source reference: project_timeline.csv (snapshot: =
+ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)
+  - phase name: Use Case =
+Selection
+  - start week: 5
+  - end week: 6
+  - key activities: ["Shortlist=
+ priority AI use cases (forecasting, route optimization)"]
+  - milestones deliverables: ["Final list of prioritized use cases with =
+success criteria"]
+  - source reference: project_timeline.csv (snapshot: =
+ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)
+  - phase name: Pilot Design
+  - start week: 7
+  - end week: 10
+  - key activities: ["Data collection & =
+preparation","Model design and development"]
+  - milestones deliverables: =
+["Working prototype models","Data pipelines established"]
+  - source reference: project_timeline.csv (snapshot: =
+ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)
+  - phase name: Pilot =
+Implementation
+  - start week: 11
+  - end week: 14
+  - key activities: =
+["Deploy AI models in test environments","Monitor performance"]
+  - milestones deliverables: ["Pilot results report","User feedback and =
+performance metrics"]
+  - source reference: project_timeline.csv (snapshot:=
+ ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)
+  - phase name: Evaluation =
+& Iteration
+  - start week: 15
+  - end week: 16
+  - key activities: =
+["Evaluate pilot outcomes","Adjust models as needed"]
+  - milestones deliverables: ["Updated models and process refinements"]
+  - source reference: project_timeline.csv (snapshot: =
+ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)
+  - phase name: Full =
+Deployment
+  - start week: 17
+  - end week: 22
+  - key activities: ["Scale =
+AI models across selected departments","Train staff"]
+  - milestones deliverables: ["Full production rollout","Training sessions =
+completed"]
+  - source reference: project_timeline.csv (snapshot: =
+ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)
+  - phase name: Monitoring &=
+ Review
+  - start week: 23
+  - end week: 24
+  - key activities: =
+["Continuous performance monitoring","Final project review"]
+  - milestones deliverables: ["Project closure report","Recommendations for=
+ future scaling"]
+  - source reference: project_timeline.csv (snapshot: =
+ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)
+
+## Activities
+
+- Define project scope
+- Form cross-functional team
+- Initial stakeholder meeting
+- Assess existing processes & systems
+- Identify data sources & gaps
+- Shortlist priority AI use cases =
+(forecasting, route optimization)
+- Data collection & preparation
+- Model design and development
+- Deploy AI models in test environments
+- Monitor performance
+- Evaluate pilot outcomes
+- Adjust models as needed
+- Scale AI models across selected departments
+- Train staff
+- Continuous performance monitoring
+- Final project review
+
+## Milestones
+
+- **Project charter signed off**
+  - source reference: project_timeline.csv=
+ (snapshot: ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)
+- **Team structure finalized**
+  - source reference: project_timeline.csv =
+(snapshot: ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)
+- **Current systems audit report**
+  - source reference: project_timeline.=
+csv (snapshot: ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)
+- **Gap analysis report**
+  - source reference: project_timeline.csv =
+(snapshot: ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)
+- **Final list of prioritized use cases with success criteria**
+  - source reference: project_timeline.csv (snapshot: =
+ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)
+- **Working prototype =
+models**
+  - source reference: project_timeline.csv (snapshot: =
+ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)
+- **Data pipelines =
+established**
+  - source reference: project_timeline.csv (snapshot: =
+ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)
+- **Pilot results report**
+  - source reference: project_timeline.csv (snapshot: =
+ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)
+- **User feedback and =
+performance metrics**
+  - source reference: project_timeline.csv (snapshot:=
+ ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)
+- **Updated models and =
+process refinements**
+  - source reference: project_timeline.csv (snapshot:=
+ ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)
+- **Full production =
+rollout**
+  - source reference: project_timeline.csv (snapshot: =
+ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)
+- **Training sessions =
+completed**
+  - source reference: project_timeline.csv (snapshot: =
+ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)
+- **Project closure report**
+  - source reference: project_timeline.csv (snapshot: =
+ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)
+- **Recommendations for =
+future scaling**
+  - source reference: project_timeline.csv (snapshot: =
+ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)
+
+## Deliverables
+
+- Project charter signed off
+- Team structure finalized
+- Current systems audit report
+- Gap analysis report
+- Final list of prioritized use cases with success criteria
+- Working prototype models
+- Data pipelines established
+- Pilot results report
+- User feedback and performance metrics
+- Updated models and process refinements
+- Full production rollout
+- Training sessions completed
+- Project closure report
+- Recommendations for future scaling
+
+<details>
+<summary>Complete =
+structured report data</summary>
+
+```json
+{
+  "agent": "planner",
+  "snapshot_id": "ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b",
+  "generated_at": "2026-11-19T19:23:28.518Z",
+  "status": "ok",
+  "plan": {
+    "project_name": "AI Adoption Project - ABCDE Ltd.",
+    "objective": "Integrate AI-powered tools into core business functions =
+to enhance operational efficiency, improve customer experience, and enable =
+data-driven decision-making.",
+    "objectives": [
+      "Reduce delivery =
+delays by 15%",
+      "Lower operational costs by 10%",
+      "Improve service responsiveness",
+      "Integrate AI for demand =
+forecasting, route optimization, inventory management, and customer =
+support"
+    ],
+    "scope": "Implement phased AI adoption across selected =
+logistics and supply-chain functions at ABCDE Ltd., including assessment of=
+ current workflows and data infrastructure, pilot implementations in =
+targeted departments, and scaling successful pilots to production. Focus =
+areas include demand forecasting, route optimization, inventory management,=
+ and customer support. Scope boundaries and exclusions are not explicitly =
+documented in the provided project description.",
+    "phases": [
+      {
+        "phase_name": "Project Initiation",
+        "start_week": 1,
+        "end_week": 2,
+        "key_activities": [
+          "Define =
+project scope",
+          "Form cross-functional team",
+          "Initial stakeholder meeting"
+        ],
+        =
+"milestones_deliverables": [
+          "Project charter signed off",
+          "Team structure finalized"
+        ],
+        "source_reference":=
+ "project_timeline.csv (snapshot: ABCDE-LTD-AI-ADOPTION-20261102021744-021e=
+119b)"
+      },
+      {
+        "phase_name": "Current State Analysis",
+        "start_week": 3,
+        "end_week": 4,
+        "key_activities": [
+          "Assess existing processes & systems",
+          "Identify data =
+sources & gaps"
+        ],
+        "milestones_deliverables": [
+          "Current systems audit report",
+          "Gap analysis report"
+        ],
+        "source_reference": "project_timeline.csv (snapshot: =
+ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)"
+      },
+      {
+        "phase_name": "Use Case Selection",
+        "start_week": 5,
+        "end_week": 6,
+        "key_activities": [
+          "Shortlist =
+priority AI use cases (forecasting, route optimization)"
+        ],
+        "milestones_deliverables": [
+          "Final list of prioritized =
+use cases with success criteria"
+        ],
+        "source_reference": =
+"project_timeline.csv (snapshot: ABCDE-LTD-AI-ADOPTION-20261102021744-021e1=
+19b)"
+      },
+      {
+        "phase_name": "Pilot Design",
+        "start_week": 7,
+        "end_week": 10,
+        "key_activities": =
+[
+          "Data collection & preparation",
+          "Model design and =
+development"
+        ],
+        "milestones_deliverables": [
+          "Working prototype models",
+          "Data pipelines =
+established"
+        ],
+        "source_reference": "project_timeline.csv =
+(snapshot: ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)"
+      },
+      {
+        "phase_name": "Pilot Implementation",
+        "start_week": 11,
+        "end_week": 14,
+        "key_activities": [
+          "Deploy AI models in test environments",
+          "Monitor =
+performance"
+        ],
+        "milestones_deliverables": [
+          "Pilot results report",
+          "User feedback and performance =
+metrics"
+        ],
+        "source_reference": "project_timeline.csv =
+(snapshot: ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)"
+      },
+      {
+        "phase_name": "Evaluation & Iteration",
+        "start_week": 15,
+        "end_week": 16,
+        "key_activities": [
+          "Evaluate pilot outcomes",
+          "Adjust models as needed"
+        ],
+        "milestones_deliverables": [
+          "Updated models =
+and process refinements"
+        ],
+        "source_reference": =
+"project_timeline.csv (snapshot: ABCDE-LTD-AI-ADOPTION-20261102021744-021e1=
+19b)"
+      },
+      {
+        "phase_name": "Full Deployment",
+        "start_week": 17,
+        "end_week": 22,
+        "key_activities":=
+ [
+          "Scale AI models across selected departments",
+          "Train staff"
+        ],
+        "milestones_deliverables": [
+          "Full production rollout",
+          "Training sessions =
+completed"
+        ],
+        "source_reference": "project_timeline.csv =
+(snapshot: ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)"
+      },
+      {
+        "phase_name": "Monitoring & Review",
+        "start_week": 23,
+        "end_week": 24,
+        "key_activities": [
+          "Continuous performance monitoring",
+          "Final project =
+review"
+        ],
+        "milestones_deliverables": [
+          "Project closure report",
+          "Recommendations for future =
+scaling"
+        ],
+        "source_reference": "project_timeline.csv =
+(snapshot: ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)"
+      }
+    ],
+    "activities": [
+      "Define project scope",
+      "Form =
+cross-functional team",
+      "Initial stakeholder meeting",
+      "Assess existing processes & systems",
+      "Identify data sources &=
+ gaps",
+      "Shortlist priority AI use cases (forecasting, route =
+optimization)",
+      "Data collection & preparation",
+      "Model design and development",
+      "Deploy AI models in test =
+environments",
+      "Monitor performance",
+      "Evaluate pilot outcomes"=
+,
+      "Adjust models as needed",
+      "Scale AI models across selected =
+departments",
+      "Train staff",
+      "Continuous performance =
+monitoring",
+      "Final project review"
+    ],
+    "deliverables": [
+      "Project charter signed off",
+      "Team structure finalized",
+      "Current systems audit report",
+      "Gap analysis report",
+      "Final list of prioritized use cases with success criteria",
+      "Working prototype models",
+      "Data pipelines established",
+      "Pilot results report",
+      "User feedback and performance metrics"=
+,
+      "Updated models and process refinements",
+      "Full production =
+rollout",
+      "Training sessions completed",
+      "Project closure =
+report",
+      "Recommendations for future scaling"
+    ],
+    "milestones": [
+      {
+        "name": "Project charter signed off",
+        "target_week": null,
+        "target_date": null,
+        "source_reference": "project_timeline.csv (snapshot: =
+ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)"
+      },
+      {
+        "name": "Team structure finalized",
+        "target_week": null,
+        "target_date": null,
+        "source_reference": "project_timeline.=
+csv (snapshot: ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)"
+      },
+      {
+        "name": "Current systems audit report",
+        "target_week": null,
+        "target_date": null,
+        "source_reference": "project_timeline.csv (snapshot: =
+ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)"
+      },
+      {
+        "name": "Gap analysis report",
+        "target_week": null,
+        "target_date": null,
+        "source_reference": "project_timeline.=
+csv (snapshot: ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)"
+      },
+      {
+        "name": "Final list of prioritized use cases with success =
+criteria",
+        "target_week": null,
+        "target_date": null,
+        "source_reference": "project_timeline.csv (snapshot: =
+ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)"
+      },
+      {
+        "name": "Working prototype models",
+        "target_week": null,
+        "target_date": null,
+        "source_reference": "project_timeline.=
+csv (snapshot: ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)"
+      },
+      {
+        "name": "Data pipelines established",
+        "target_week": null,
+        "target_date": null,
+        "source_reference": "project_timeline.csv (snapshot: =
+ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)"
+      },
+      {
+        "name": "Pilot results report",
+        "target_week": null,
+        "target_date": null,
+        "source_reference": "project_timeline.=
+csv (snapshot: ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)"
+      },
+      {
+        "name": "User feedback and performance metrics",
+        "target_week": null,
+        "target_date": null,
+        "source_reference": "project_timeline.csv (snapshot: =
+ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)"
+      },
+      {
+        "name": "Updated models and process refinements",
+        "target_week": null,
+        "target_date": null,
+        "source_reference": "project_timeline.csv (snapshot: =
+ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)"
+      },
+      {
+        "name": "Full production rollout",
+        "target_week": null,
+        "target_date": null,
+        "source_reference": "project_timeline.=
+csv (snapshot: ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)"
+      },
+      {
+        "name": "Training sessions completed",
+        "target_week": null,
+        "target_date": null,
+        "source_reference": "project_timeline.csv (snapshot: =
+ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)"
+      },
+      {
+        "name": "Project closure report",
+        "target_week": null,
+        "target_date": null,
+        "source_reference": "project_timeline.=
+csv (snapshot: ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)"
+      },
+      {
+        "name": "Recommendations for future scaling",
+        "target_week": null,
+        "target_date": null,
+        "source_reference": "project_timeline.csv (snapshot: =
+ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)"
+      }
+    ],
+    "timeline": "Weeks 1-24 (documented in project_timeline.csv - snapshot:=
+ ABCDE-LTD-AI-ADOPTION-20261102021744-021e119b)",
+    "assumptions": [],
+    "data_gaps": [
+      "Individual milestone target weeks and calendar =
+dates are not specified in project_timeline.csv; target_week and =
+target_date are therefore set to null for all milestones."
+    ]
+  },
+  "validation_status": "PASSED",
+  "validation_issues": [],
+  "phase_count": 8,
+  "milestone_count": 14,
+  "expected_milestone_count": =
+14,
+  "milestone_completeness_pct": 100,
+  "trace_id": =
+"83f7b527e48980bfcb4ff5c6b2a0feb6",
+  "span_id": "b5c8d275ae8e830a"
+}
+```
+</details></div>
+   =20
+
+      <hr>
+
+      <p>
+        Please review the =
+content above before
+        selecting Approve or Decline using the
+        approval buttons below.
+      </p>
+
+      <p>
+        Approval applies only to this specific
+        review request and =
+report version.
+      </p>
+
+      <p>
+        This is a DRAFT generated by =
+MIRA.
+        Approval does not automatically authorize
+        external distribution.
+      </p>
+
+      <p>
+        Thank you,
+
+        MIRA Project Intelligence Assistant
+      </p>
+
+    </div></p>
+						</td>
+					</tr>
+					<tr>
+						<td align=3D"center" =
+style=3D"padding-top: 12px;">
+								<a href=3D"https://agentic09.app.n8n.=
+cloud/webhook-waiting/6070/88837c9a-e62b-4393-bc7a-3a70c5d30582?=
+approved=3Dfalse&signature=3D4f698df3eba9c28a59a3bb20f64bce6a472724501429d0=
+1bb910963d7ef69108" target=3D"_blank" style=3D"display:inline-block; =
+text-decoration:none; background-color:#fff; color:#4a4a4a; padding:12px =
+24px; font-family: Arial,sans-serif; font-size:14px;font-weight:600; =
+border:1px solid #d1d1d1; border-radius:6px; min-width:120px; margin: 12px =
+6px 0 6px;">Decline</a>
+<a href=3D"https://agentic09.app.n8n.=
+cloud/webhook-waiting/6070/88837c9a-e62b-4393-bc7a-3a70c5d30582?=
+approved=3Dtrue&signature=3D33b1fbe27f6b5cbb78cde38dff4d1de420285b927f3a1f5=
+8cd085558def1191b" target=3D"_blank" style=3D"display:inline-block; =
+text-decoration:none; background-color:#ff6d5a; color: #fff; padding:12px =
+24px; font-family: Arial,sans-serif; font-size:14px;font-weight:600; =
+border-radius:6px; min-width:120px; margin: 12px 2px 0 2px;">Approve</a>
+						</td>
+					</tr>
+				</table>
+
+				<!-- Divider -->
+				<table width=3D"100%" cellpadding=3D"0" cellspacing=3D"0" border=3D"0" =
+style=3D"margin-bottom: 24px;">
+					<tr>
+						<td style=3D"border-top: =
+0px solid #dbdfe7;"></td>
+					</tr>
+				</table>
+
+				<!-- Footer -->
+				<table width=3D"100%" cellpadding=3D"0" cellspacing=3D"0" border=3D"0"
+					style=3D"text-align: center; color: #7e8186; font-family: Arial, =
+sans-serif; font-size: 12px;">
+					<tr>
+						<td>
+							<a href=3Dhttps://n8n.io/?utm_source=3Dn8n-internal&utm_medium=3Dsen=
+d-and-wait&utm_campaign=3D2c61d8345b54d6e301f592cc929479174ed5e05854bbf9ad2=
+d4e7b0dcc2b6f7f
+								target=3D"_blank" style=3D"color: #7e8186; =
+text-decoration: none;">Automated with
+								n8n</a>
+						</td>
+					</tr>
+				</table>
+			</td>
+		</tr>
+	</table>
+</body>
+
+</html>
+=09
