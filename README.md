@@ -1,10 +1,12 @@
-Step 7 capstone submission navigation (updated November 27, 2026)
+**Step 7 capstone submission navigation (updated November 27, 2026)**
+
 Two-page architecture writeup
 Capstone presentation
 Q1–Q4 assignment evidence guide
 Evaluation workbook
 Cost analysis and assumptions
 Workflow exports and screenshot evidence
+
 Evaluation history clarification: The repository documents an earlier batch, Run 5814 (November 18, 2026), with 12/12 recorded passing overall verdicts. A later complete batch, Run 6756 (November 26), recorded 11/12 overall passes; T1 received an automated unsupported-claim/hallucination flag that requires evidence-level review. A subsequent isolated T8 Milestone Agent run (6826) passed with improved grounding. Do not combine those runs into a single claimed full-batch outcome.
 
 Published status: Capstone MVP / controlled demo; not production-certified. Public demo links in this README should be tested independently before submission.
