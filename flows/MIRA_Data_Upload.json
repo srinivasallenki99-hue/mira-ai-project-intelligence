@@ -1,0 +1,2914 @@
+{
+  "name": "MIRA_Data_Upload",
+  "nodes": [
+    {
+      "parameters": {
+        "authentication": "n8nUserAuth",
+        "formTitle": "MIRA – Project File Upload",
+        "formDescription": "Upload project files (PDF, Word DOC/DOCX, Excel XLS/XLSX, CSV, PowerPoint PPT/PPTX, MS Project MPP/XML, TXT). Optionally pull data straight from SharePoint, Jira, Trello or Confluence. Files are validated automatically after upload.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Project Name",
+              "fieldType": "dropdown",
+              "fieldName": "project_name",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "ABCDE Ltd AI Adoption"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Source Snapshot ID (leave blank to auto-generate)",
+              "fieldName": "source_snapshot_id",
+              "placeholder": "e.g. MIRA-2026-10-27-v1"
+            },
+            {
+              "fieldLabel": "Data As Of Date (leave blank if unknown)",
+              "fieldType": "date",
+              "fieldName": "data_as_of"
+            },
+            {
+              "fieldLabel": "Project Files",
+              "fieldType": "file",
+              "fieldName": "project_files",
+              "acceptFileTypes": ".pdf,.doc,.docx,.xls,.xlsx,.xlsm,.csv,.ppt,.pptx,.mpp,.xml,.txt,.md,.json",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "SharePoint File Links (optional, one per line)",
+              "fieldType": "textarea",
+              "fieldName": "sharepoint_links",
+              "placeholder": "https://yourcompany.sharepoint.com/:x:/s/Project/..."
+            },
+            {
+              "fieldLabel": "Jira Project Key (optional)",
+              "fieldName": "jira_project_key",
+              "placeholder": "e.g. MIRA"
+            },
+            {
+              "fieldLabel": "Trello Board URL or ID (optional)",
+              "fieldName": "trello_board",
+              "placeholder": "https://trello.com/b/AbC123/project-board"
+            },
+            {
+              "fieldLabel": "Confluence Space Key (optional)",
+              "fieldName": "confluence_space_key",
+              "placeholder": "e.g. PROJ"
+            },
+            {
+              "fieldLabel": "Submitted By (optional, for audit only)",
+              "fieldName": "submitted_by",
+              "placeholder": "Your name"
+            }
+          ]
+        },
+        "options": {
+          "buttonLabel": "Upload",
+          "path": "mira-project-upload",
+          "respondWithOptions": {
+            "values": {
+              "formSubmittedText": "Files received. Validation runs next; if the data passes, Mira generates draft reports (plan, risks, status, milestones) in MIRA_Draft_Reports. Emails stay as drafts and are never sent."
+            }
+          }
+        }
+      },
+      "id": "8a27ee63-25a8-48fc-9a7c-a2f9e1c7e854",
+      "name": "Project File Upload Form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        -864,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ String($('Project File Upload Form').first().json.sharepoint_links || '').trim() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4dd29e7d-76b4-440d-8bca-1b1cf218752e",
+      "name": "SharePoint Links Given?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1408,
+        1120
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = String($('Project File Upload Form').first().json.sharepoint_links || '');\nconst links = raw.split(/[\\s,]+/).map((l) => l.trim()).filter((l) => /^https?:\\/\\//i.test(l)).slice(0, 20);\nreturn links.map((link) => ({ json: { link, share_id: 'u!' + Buffer.from(link, 'utf8').toString('base64').replace(/=+$/, '').replace(/\\//g, '_').replace(/\\+/g, '-') } }));"
+      },
+      "id": "ca414da7-f08c-4906-9aa4-f2c61d1a0a9e",
+      "name": "Prepare SharePoint Links",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1632,
+        1040
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://graph.microsoft.com/v1.0/shares/' + $json.share_id + '/driveItem' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "microsoftOneDriveOAuth2Api",
+        "options": {}
+      },
+      "id": "583c52de-7ddd-4b41-9c72-5d147d19fd7f",
+      "name": "Get SharePoint File Info",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1856,
+        1040
+      ],
+      "alwaysOutputData": true,
+      "disabled": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://graph.microsoft.com/v1.0/shares/' + $('Prepare SharePoint Links').item.json.share_id + '/driveItem/content' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "microsoftOneDriveOAuth2Api",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "50bdf95b-c7a1-4162-b32a-9dbd37803f5f",
+      "name": "Download SharePoint File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2080,
+        1040
+      ],
+      "alwaysOutputData": true,
+      "disabled": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ String($('Project File Upload Form').first().json.jira_project_key || '').trim() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "45f4e3e7-3659-4b45-8704-2a2849de3bb5",
+      "name": "Jira Key Given?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2304,
+        1120
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": 500,
+        "options": {
+          "jql": "={{ 'project = \"' + String($('Project File Upload Form').first().json.jira_project_key).trim().toUpperCase() + '\" ORDER BY updated DESC' }}"
+        }
+      },
+      "id": "cc7d48c9-d317-4048-a92f-04834c4c8cee",
+      "name": "Get Jira Issues",
+      "type": "n8n-nodes-base.jira",
+      "typeVersion": 1,
+      "position": [
+        2528,
+        1520
+      ],
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "disabled": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ String($('Project File Upload Form').first().json.trello_board || '').trim() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3bf4e957-1175-40ae-83ad-e86e319d0fbc",
+      "name": "Trello Board Given?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2752,
+        1120
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://api.trello.com/1/boards/' + ((String($('Project File Upload Form').first().json.trello_board).trim().match(/trello\\.com\\/b\\/([^/?#]+)/) || [])[1] || String($('Project File Upload Form').first().json.trello_board).trim()) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "trelloApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "name,url"
+            },
+            {
+              "name": "lists",
+              "value": "open"
+            },
+            {
+              "name": "cards",
+              "value": "open"
+            },
+            {
+              "name": "card_fields",
+              "value": "name,desc,due,dueComplete,idList,idShort,labels,dateLastActivity,shortUrl"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "42ad6663-ea90-41e6-aa7c-8241162ef07e",
+      "name": "Get Trello Board",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2976,
+        1520
+      ],
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "disabled": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ String($('Project File Upload Form').first().json.confluence_space_key || '').trim() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5c913d39-c195-4147-b4fb-28fbfd469dca",
+      "name": "Confluence Space Given?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3200,
+        1520
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "resource": "search",
+        "site": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "cql": "={{ 'space = \"' + String($('Project File Upload Form').first().json.confluence_space_key).trim() + '\" AND type = page' }}",
+        "limit": 50,
+        "options": {
+          "contentStatuses": [
+            "current"
+          ],
+          "fetchFullPageContent": true
+        }
+      },
+      "id": "51c95ab8-db9e-4495-a05b-0c8bd6b0b23f",
+      "name": "Get Confluence Pages",
+      "type": "n8n-nodes-base.confluence",
+      "typeVersion": 1,
+      "position": [
+        3424,
+        1520
+      ],
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "disabled": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Combine form uploads with files built from SharePoint, Jira, Trello and Confluence.\nconst form = $('Project File Upload Form').first();\nconst json = Object.assign({}, form.json);\nconst binary = Object.assign({}, form.binary || {});\nconst log = [];\nconst ran = (name) => { try { return $(name).all(); } catch (e) { return null; } };\nconst slug = (t) => String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'untitled';\nconst csvCell = (v) => { const t = v === null || v === undefined ? '' : String(v); return /[\",\\n]/.test(t) ? '\"' + t.replace(/\"/g, '\"\"') + '\"' : t; };\nconst toCsv = (rows) => { if (!rows.length) return ''; const cols = Object.keys(rows[0]); return [cols.join(',')].concat(rows.map((r) => cols.map((c) => csvCell(r[c])).join(','))).join('\\n'); };\nconst stripHtml = (h) => String(h || '').replace(/<\\/(p|h[1-6]|li|tr|div)>/gi, '\\n').replace(/<br\\s*\\/?>/gi, '\\n').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '\"').replace(/\\n{3,}/g, '\\n\\n').trim();\nlet n = 0;\nconst add = async (text, fileName, mime) => { binary['connector_' + (n++)] = await this.helpers.prepareBinaryData(Buffer.from(text, 'utf8'), fileName, mime); };\n\n// SharePoint: downloaded files keep their real names\nconst spFiles = ran('Download SharePoint File');\nif (spFiles) {\n  const infos = ran('Get SharePoint File Info') || [];\n  for (let i = 0; i < spFiles.length; i++) {\n    const it = spFiles[i];\n    const info = (infos[i] || {}).json || {};\n    if (it.json && it.json.error || !it.binary || !it.binary.data) { log.push('SharePoint: could not download ' + (info.name || 'link ' + (i + 1)) + ' - ' + JSON.stringify((it.json || {}).error || info.error || 'no file returned').slice(0, 300)); continue; }\n    const b = Object.assign({}, it.binary.data);\n    const name = info.name || b.fileName || ('file-' + (i + 1));\n    b.fileName = 'sharepoint-' + name;\n    b.fileExtension = name.includes('.') ? name.split('.').pop().toLowerCase() : (b.fileExtension || '');\n    binary['connector_' + (n++)] = b;\n  }\n}\n\n// Jira: issues become a work-items CSV\nconst jira = ran('Get Jira Issues');\nif (jira) {\n  const key = String(json.jira_project_key || '').trim().toUpperCase();\n  const ok = jira.map((i) => i.json).filter((j) => j && j.key);\n  const err = jira.map((i) => i.json).find((j) => j && j.error);\n  if (err) log.push('Jira (' + key + '): ' + JSON.stringify(err.error).slice(0, 300));\n  if (ok.length) {\n    const rows = ok.map((j) => { const f = j.fields || {}; return { issue_key: j.key, summary: f.summary || '', issue_type: (f.issuetype || {}).name || '', issue_status: (f.status || {}).name || '', status_category: ((f.status || {}).statusCategory || {}).name || '', assignee: (f.assignee || {}).displayName || '', priority: (f.priority || {}).name || '', due_date: f.duedate || '', labels: (f.labels || []).join('; '), created: f.created || '', updated: f.updated || '' }; });\n    await add(toCsv(rows), 'jira-' + slug(key) + '-issues.csv', 'text/csv');\n  } else if (!err) log.push('Jira (' + key + '): no issues found');\n}\n\n// Trello: board cards become a work-items CSV (list name = stage)\nconst trello = ran('Get Trello Board');\nif (trello) {\n  const board = (trello[0] || {}).json || {};\n  if (board.error || !board.cards) log.push('Trello (' + (json.trello_board || '') + '): ' + JSON.stringify(board.error || 'board not returned').slice(0, 300));\n  else {\n    const lists = {}; (board.lists || []).forEach((l) => { lists[l.id] = l.name; });\n    const rows = board.cards.map((c) => ({ card_id: c.idShort || c.id, card_name: c.name || '', list_stage: lists[c.idList] || '', due_date: c.due || '', due_complete: !!c.dueComplete, labels: (c.labels || []).map((l) => l.name || l.color).join('; '), last_activity: c.dateLastActivity || '', url: c.shortUrl || c.url || '', description: (c.desc || '').slice(0, 2000) }));\n    if (rows.length) await add(toCsv(rows), 'trello-' + slug(board.name) + '-cards.csv', 'text/csv');\n    else log.push('Trello (' + (board.name || '') + '): no open cards');\n  }\n}\n\n// Confluence: one text file per page\nconst conf = ran('Get Confluence Pages');\nif (conf) {\n  const space = String(json.confluence_space_key || '').trim();\n  let pages = 0;\n  for (const it of conf) {\n    const r = it.json || {};\n    if (r.error) { log.push('Confluence (' + space + '): ' + JSON.stringify(r.error).slice(0, 300)); continue; }\n    const c = r.content || r;\n    const title = c.title || r.title;\n    if (!title) continue;\n    const body = stripHtml(((c.body || {}).storage || {}).value || r.excerpt || '');\n    await add(title + '\\n\\n' + body, 'confluence-' + slug(space) + '-' + slug(title) + '.txt', 'text/plain');\n    pages++;\n  }\n  if (!pages && !log.some((l) => l.startsWith('Confluence'))) log.push('Confluence (' + space + '): no pages found');\n}\n\nif (log.length) await add('Connector fetch log\\n\\n' + log.join('\\n'), 'connector-fetch-log.txt', 'text/plain');\njson.connector_files_added = n;\njson.connector_issues = log;\nreturn [{ json, binary }];"
+      },
+      "id": "a5d05981-08ee-4410-82ff-e42f6189f64c",
+      "name": "Attach Connector Files",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3648,
+        1520
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// One item per uploaded file, binary moved to \"data\", plus snapshot + freshness metadata.\nconst fnv = (buf, seed) => {\n  let h = (seed === undefined ? 0x811c9dc5 : seed) >>> 0;\n  for (let j = 0; j < buf.length; j++) { h ^= buf[j]; h = Math.imul(h, 0x01000193) >>> 0; }\n  return h >>> 0;\n};\nconst hex = (n) => n.toString(16).padStart(8, '0');\nconst out = [];\nconst items = $input.all();\nfor (let i = 0; i < items.length; i++) {\n  const meta = items[i].json || {};\n  const binary = items[i].binary || {};\n  const keys = Object.keys(binary);\n  const files = [];\n  let snapshotHash = 0x811c9dc5;\n  for (const key of keys) {\n    const buf = await this.helpers.getBinaryDataBuffer(i, key);\n    const b = binary[key];\n    const name = b.fileName || key;\n    snapshotHash = fnv(Buffer.from(name, 'utf8'), snapshotHash);\n    snapshotHash = fnv(buf, snapshotHash);\n    files.push({ key, b, name, size: buf.length, fingerprint: hex(fnv(buf)) });\n  }\n  const uploadedAt = meta.submittedAt || $now.toISO();\n  const project = String(meta.project_name || 'project').trim();\n  const slug = project.toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 30) || 'PROJECT';\n  const provided = String(meta.source_snapshot_id || '').trim();\n  const snapshotFingerprint = hex(snapshotHash);\n  const snapshotId = provided || (slug + '-' + DateTime.fromISO(uploadedAt).toFormat('yyyyMMddHHmmss') + '-' + snapshotFingerprint);\n  for (const f of files) {\n    const ext = (f.name.includes('.') ? f.name.split('.').pop() : '').toLowerCase();\n    const bin = Object.assign({}, f.b);\n    // DOCX is a ZIP container; label it so the decompress step unpacks it.\n    if (ext === 'docx' || ext === 'pptx') { bin.fileExtension = 'zip'; bin.mimeType = 'application/zip'; }\n    out.push({\n      json: {\n        project_name: project,\n        submitted_by: meta.submitted_by || '',\n        source_snapshot_id: snapshotId,\n        snapshot_id_source: provided ? 'provided' : 'generated',\n        snapshot_fingerprint: snapshotFingerprint,\n        data_as_of: meta.data_as_of || '',\n        uploaded_at: uploadedAt,\n        upload_channel: meta.formMode || 'form',\n        file_name: f.name,\n        file_extension: ext,\n        mime_type: f.b.mimeType || '',\n        file_size_bytes: f.size,\n        file_fingerprint: f.fingerprint,\n        files_in_upload: files.length\n      },\n      binary: { data: bin },\n      pairedItem: { item: i }\n    });\n  }\n}\nreturn out;"
+      },
+      "id": "4fc55d17-0a70-4b69-a7b1-dfcd2983c226",
+      "name": "Split Uploaded Files",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        -2096
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ ['csv'].includes($json.file_extension) }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "CSV"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ ['xlsx','xlsm'].includes($json.file_extension) }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "XLSX"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ ['txt','md','text','log','xml','json'].includes($json.file_extension) }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Text"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ ['pdf'].includes($json.file_extension) }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "PDF"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ ['docx','pptx'].includes($json.file_extension) }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Word/PowerPoint"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ ['xls'].includes($json.file_extension) }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "XLS"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Unsupported"
+        }
+      },
+      "id": "cff7a9b0-268f-44b7-a64e-a9c341d511d4",
+      "name": "Route by File Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        304,
+        -2160
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "enableBOM": true,
+          "headerRow": true,
+          "includeEmptyCells": true
+        }
+      },
+      "id": "cee83a1f-9747-4440-a2ec-4197f6b52acd",
+      "name": "Extract CSV Rows",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        752,
+        -2576
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "options": {
+          "headerRow": true,
+          "includeEmptyCells": true
+        }
+      },
+      "id": "d38eeea7-a8be-4b2c-8456-f571b36ef4ff",
+      "name": "Extract XLSX Rows",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        752,
+        -2384
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "destinationKey": "text",
+        "options": {}
+      },
+      "id": "65b509bf-2181-4320-85a6-b3df95afa438",
+      "name": "Extract Text File",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        752,
+        -2192
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {
+          "joinPages": true
+        }
+      },
+      "id": "5983b7b2-5c82-4aa9-a6d8-0dc9fc49aacc",
+      "name": "Extract PDF Text",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        752,
+        -2000
+      ]
+    },
+    {
+      "parameters": {
+        "outputPrefix": "office_"
+      },
+      "id": "7e8291b6-e6a7-496f-badb-5e39bfcc5132",
+      "name": "Unpack Word/PowerPoint",
+      "type": "n8n-nodes-base.compression",
+      "typeVersion": 1.1,
+      "position": [
+        528,
+        -1808
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const decode = (t) => t.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '\"').replace(/&apos;/g, \"'\");\nconst out = [];\nconst items = $input.all();\nfor (let i = 0; i < items.length; i++) {\n  const binary = items[i].binary || {};\n  const keys = Object.keys(binary);\n  const docKey = keys.find((k) => binary[k].fileName === 'document.xml' && String(binary[k].directory || '').includes('word'))\n    || keys.find((k) => binary[k].fileName === 'document.xml');\n  const slideKeys = keys\n    .filter((k) => /^slide\\d+\\.xml$/.test(binary[k].fileName || '') && !String(binary[k].directory || '').includes('_rels'))\n    .sort((a, b) => parseInt(binary[a].fileName.replace(/\\D/g, ''), 10) - parseInt(binary[b].fileName.replace(/\\D/g, ''), 10));\n  if (docKey) {\n    const xml = (await this.helpers.getBinaryDataBuffer(i, docKey)).toString('utf8');\n    const text = decode(xml.replace(/<w:tab[^>]*\\/>/g, '\\t').replace(/<\\/w:p>/g, '\\n').replace(/<[^>]+>/g, '')).replace(/\\n{3,}/g, '\\n\\n').trim();\n    out.push({ json: { text, extraction_status: 'extracted' }, pairedItem: { item: i } });\n  } else if (slideKeys.length) {\n    const parts = [];\n    for (let n = 0; n < slideKeys.length; n++) {\n      const xml = (await this.helpers.getBinaryDataBuffer(i, slideKeys[n])).toString('utf8');\n      const body = decode(xml.replace(/<\\/a:p>/g, '\\n').replace(/<[^>]+>/g, '')).replace(/\\n{2,}/g, '\\n').trim();\n      parts.push('--- Slide ' + (n + 1) + ' ---\\n' + body);\n    }\n    out.push({ json: { text: parts.join('\\n\\n'), extraction_status: 'extracted' }, pairedItem: { item: i } });\n  } else {\n    out.push({ json: { text: '', extraction_status: 'office_text_not_found' }, pairedItem: { item: i } });\n  }\n}\nreturn out;"
+      },
+      "id": "f906a3a0-8ff6-436b-8e50-890b5f56a84f",
+      "name": "Read Word/PowerPoint Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        -1808
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "xls",
+        "options": {
+          "headerRow": true,
+          "includeEmptyCells": true
+        }
+      },
+      "id": "5b52f1b9-8975-44fe-b917-882299730edf",
+      "name": "Extract XLS Rows",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        3712,
+        -1104
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "u1",
+              "name": "text",
+              "value": "={{ (() => { const ext = String($json.file_extension || ''); const tips = { doc: 'Re-save it as .docx', ppt: 'Re-save it as .pptx', mpp: 'Export it from MS Project as XML (.xml) or Excel (.xlsx)' }; return '[Content not extracted] ' + $json.file_name + ' is stored for reference only. ' + (tips[ext] || 'Convert it to PDF, DOCX, XLSX or CSV') + ' so MIRA can read its content.'; })() }}",
+              "type": "string"
+            },
+            {
+              "id": "u2",
+              "name": "extraction_status",
+              "value": "content_not_extracted",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e7d393a2-d096-423d-ab8e-745cead743f0",
+      "name": "Flag Content Not Extracted",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        752,
+        -1616
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "5958d980-824d-4698-9afd-20e376e6d901",
+      "name": "Import From Google Drive",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -880,
+        -256
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "'1M4fiHg6ivOVdMM-mH9WUBTiyUUHspu5h' in parents and trashed = false",
+        "returnAll": true,
+        "filter": {
+          "driveId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "My Drive"
+          }
+        },
+        "options": {
+          "fields": [
+            "id",
+            "name",
+            "mimeType"
+          ]
+        }
+      },
+      "id": "d07acacf-4e42-4eeb-9ed0-468cdb05a907",
+      "name": "List Drive Project Files",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        720,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ String($json.mimeType || \"\") !== \"application/vnd.google-apps.folder\" && !/^eval_/i.test(String($json.name || \"\").trim()) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "id": "d400f186-f66a-4334-b2f2-7563cc84e43c"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f1e25555-fd1f-4862-b14f-aba558b80ec8",
+      "name": "Keep Mira Data Files",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        944,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json.id }}"
+        },
+        "options": {
+          "fileName": "={{ $json.name }}"
+        }
+      },
+      "id": "22659eb9-37ac-41b3-aaca-97810daabd6b",
+      "name": "Download Drive File",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1168,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Combine the downloaded Drive files into one upload, shaped like a form submission.\nconst binary = {};\n$input.all().forEach((item, i) => { if (item.binary && item.binary.data) binary['project_files_' + i] = item.binary.data; });\nreturn [{\n  json: {\n    project_name: 'ABCDE Ltd AI Adoption',\n    source_snapshot_id: '',\n    data_as_of: $now.toFormat('yyyy-MM-dd'),\n    submitted_by: 'Google Drive import',\n    submittedAt: $now.toISO(),\n    formMode: 'googleDrive'\n  },\n  binary\n}];"
+      },
+      "id": "7010d96c-3af0-4572-b2c9-f86350991d86",
+      "name": "Bundle Drive Files",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1392,
+        -80
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "b0e3c33f-e02d-4bb0-9b42-5b70e132a31c",
+      "name": "Run Capstone Sample Test",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -912,
+        -2288
+      ],
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Regression fixture: the real capstone sample_task_board.csv (25 tasks) + project_description.txt\nconst header = [\"task_id\",\"task_name\",\"status\",\"assignee\",\"priority\",\"sprint\",\"due_date\",\"labels\",\"description\"];\nconst rows = [\n[\"T001\",\"Define project scope and objectives\",\"Done\",\"Arjun Mehta\",\"High\",\"Sprint 1\",\"2026-04-07\",\"Planning\",\"Document project scope, goals, and success criteria for AI adoption\"],\n[\"T002\",\"Form cross-functional task force\",\"Done\",\"Sarah Lin\",\"High\",\"Sprint 1\",\"2026-04-07\",\"Planning\",\"Identify and onboard team members from data science, IT, and business units\"],\n[\"T003\",\"Initial stakeholder alignment meeting\",\"Done\",\"Arjun Mehta\",\"High\",\"Sprint 1\",\"2026-04-10\",\"Planning\",\"Present project charter and get sign-off from leadership\"],\n[\"T004\",\"Audit existing data infrastructure\",\"Done\",\"Priya Nair\",\"High\",\"Sprint 2\",\"2026-04-18\",\"Analysis\",\"Assess current databases, data pipelines, and data quality\"],\n[\"T005\",\"Map current logistics workflows\",\"Done\",\"James Wong\",\"Medium\",\"Sprint 2\",\"2026-04-18\",\"Analysis\",\"Document end-to-end processes for demand forecasting, routing, and inventory\"],\n[\"T006\",\"Identify data gaps and quality issues\",\"In Progress\",\"Priya Nair\",\"High\",\"Sprint 2\",\"2026-04-21\",\"Analysis\",\"Gap analysis report comparing available data vs requirements for AI models\"],\n[\"T007\",\"Shortlist AI use cases\",\"In Progress\",\"Arjun Mehta\",\"High\",\"Sprint 3\",\"2026-04-28\",\"Use Cases\",\"Evaluate and prioritize: demand forecasting, route optimization, inventory mgmt, customer support\"],\n[\"T008\",\"Define success criteria for each use case\",\"To Do\",\"Sarah Lin\",\"High\",\"Sprint 3\",\"2026-05-02\",\"Use Cases\",\"Set measurable KPIs: 15% reduction in delivery delays, 10% cost reduction\"],\n[\"T009\",\"Vendor evaluation for ML platform\",\"To Do\",\"James Wong\",\"Medium\",\"Sprint 3\",\"2026-05-05\",\"Use Cases\",\"Compare cloud ML platforms (AWS SageMaker, Azure ML, GCP Vertex AI)\"],\n[\"T010\",\"Collect historical demand data\",\"To Do\",\"Priya Nair\",\"High\",\"Sprint 4\",\"2026-05-12\",\"Data Prep\",\"Extract 2 years of demand data from ERP system\"],\n[\"T011\",\"Data cleaning and preprocessing pipeline\",\"To Do\",\"Priya Nair\",\"High\",\"Sprint 4\",\"2026-05-19\",\"Data Prep\",\"Build automated pipeline for data cleaning, normalization, feature engineering\"],\n[\"T012\",\"Design demand forecasting model\",\"To Do\",\"Ravi Kumar\",\"High\",\"Sprint 4\",\"2026-05-19\",\"Model Dev\",\"Select algorithm (LSTM, Prophet, XGBoost), define input features\"],\n[\"T013\",\"Design route optimization model\",\"To Do\",\"Ravi Kumar\",\"Medium\",\"Sprint 5\",\"2026-05-26\",\"Model Dev\",\"Graph-based optimization with constraints (time windows, vehicle capacity)\"],\n[\"T014\",\"Build model training pipeline\",\"To Do\",\"Ravi Kumar\",\"High\",\"Sprint 5\",\"2026-06-02\",\"Model Dev\",\"Automated training, validation, and model versioning\"],\n[\"T015\",\"Deploy demand model to test environment\",\"To Do\",\"James Wong\",\"High\",\"Sprint 6\",\"2026-06-09\",\"Pilot\",\"Deploy to staging, set up monitoring, define test scenarios\"],\n[\"T016\",\"Run pilot with logistics team\",\"To Do\",\"Arjun Mehta\",\"High\",\"Sprint 6\",\"2026-06-16\",\"Pilot\",\"2-week pilot with 3 logistics coordinators using demand forecasting predictions\"],\n[\"T017\",\"Collect pilot feedback and metrics\",\"To Do\",\"Sarah Lin\",\"High\",\"Sprint 7\",\"2026-06-23\",\"Evaluation\",\"Survey users, measure prediction accuracy, compare with manual forecasts\"],\n[\"T018\",\"Iterate on model based on feedback\",\"To Do\",\"Ravi Kumar\",\"Medium\",\"Sprint 7\",\"2026-06-30\",\"Evaluation\",\"Adjust features, retrain model, validate improvements\"],\n[\"T019\",\"Prepare production deployment plan\",\"To Do\",\"James Wong\",\"High\",\"Sprint 8\",\"2026-07-07\",\"Deployment\",\"Infrastructure scaling, rollback plan, monitoring setup\"],\n[\"T020\",\"Staff training program\",\"To Do\",\"Sarah Lin\",\"Medium\",\"Sprint 8\",\"2026-07-14\",\"Deployment\",\"Train 25 logistics staff on using AI-powered forecasting dashboard\"],\n[\"T021\",\"Full production rollout\",\"To Do\",\"Arjun Mehta\",\"High\",\"Sprint 9\",\"2026-07-21\",\"Deployment\",\"Go-live for demand forecasting across all 3 distribution centers\"],\n[\"T022\",\"Set up continuous monitoring\",\"To Do\",\"Priya Nair\",\"High\",\"Sprint 9\",\"2026-07-28\",\"Monitoring\",\"Model performance dashboards, drift detection alerts, retraining triggers\"],\n[\"T023\",\"Project closure report\",\"To Do\",\"Arjun Mehta\",\"Medium\",\"Sprint 10\",\"2026-08-04\",\"Monitoring\",\"Final report: outcomes vs targets, lessons learned, recommendations for Phase 2\"],\n[\"T024\",\"Security review of AI infrastructure\",\"Blocked\",\"James Wong\",\"High\",\"Sprint 5\",\"2026-05-26\",\"Security\",\"Penetration testing and vulnerability assessment - BLOCKED: waiting for security team availability\"],\n[\"T025\",\"Legal review of data usage\",\"In Progress\",\"Sarah Lin\",\"High\",\"Sprint 3\",\"2026-04-28\",\"Compliance\",\"Review data privacy compliance for using customer delivery data in ML models\"]\n];\nconst q = (v) => (/[\",]/.test(v) ? '\"' + v.replace(/\"/g, '\"\"') + '\"' : v);\nconst csv = [header].concat(rows).map((r) => r.map(q).join(',')).join('\\n') + '\\n';\nconst description = \"AI Adoption Project Description for ABCDE Ltd.\\n\\nABCDE Ltd., a mid-sized enterprise specializing in logistics and supply chain solutions, is embarking on an AI adoption initiative to enhance operational efficiency, improve customer experience, and drive data-driven decision-making across the organization. This project will focus on integrating AI-powered tools into core business functions, including demand forecasting, route optimization, inventory management, and customer support. By leveraging machine learning models and natural language processing, the company aims to reduce manual overhead, minimize errors, and uncover actionable insights from historical and real-time data.\\n\\nThe AI adoption project will be implemented in phases, beginning with a detailed assessment of current workflows and data infrastructure, followed by pilot implementations in targeted departments. Key goals include reducing delivery delays by 15%, lowering operational costs by 10%, and improving service responsiveness. A cross-functional task force comprising data scientists, IT professionals, and business stakeholders will oversee the deployment and ensure alignment with organizational objectives. This strategic move is expected to position ABCDE Ltd. as a technology-forward leader in the logistics industry.\";\nconst csvBin = await this.helpers.prepareBinaryData(Buffer.from(csv, 'utf8'), 'sample_task_board.csv', 'text/csv');\nconst txtBin = await this.helpers.prepareBinaryData(Buffer.from(description, 'utf8'), 'project_description.txt', 'text/plain');\nreturn [{\n  json: {\n    project_name: 'ABCDE Ltd AI Adoption (capstone sample)',\n    source_snapshot_id: '',\n    data_as_of: $now.toFormat('yyyy-MM-dd'),\n    submitted_by: 'Capstone sample test',\n    submittedAt: $now.toISO(),\n    formMode: 'sampleTest'\n  },\n  binary: { project_files_0: csvBin, project_files_1: txtBin }\n}];"
+      },
+      "id": "e1b58ef4-6936-4984-8964-d4dd23ca0e10",
+      "name": "Load Capstone Sample Files",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -880,
+        -1488
+      ],
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "numberInputs": 7
+      },
+      "id": "2c5fbe03-6b00-4721-b9ce-f948689dca89",
+      "name": "Collect Extracted Content",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        976,
+        -2160
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "tb1",
+              "name": "snapshot_id",
+              "value": "={{ $json.source_snapshot_id }}",
+              "type": "string"
+            },
+            {
+              "id": "tb2",
+              "name": "uploaded_at",
+              "value": "={{ $json.uploaded_at }}",
+              "type": "string"
+            },
+            {
+              "id": "tb3",
+              "name": "file_name",
+              "value": "={{ $json.source_files.join(\", \") }}",
+              "type": "string"
+            },
+            {
+              "id": "tb4",
+              "name": "file_type",
+              "value": "={{ ($json.source_files[0] || '').split('.').pop().toLowerCase() }}",
+              "type": "string"
+            },
+            {
+              "id": "tb5",
+              "name": "doc_kind",
+              "value": "task_board",
+              "type": "string"
+            },
+            {
+              "id": "tb6",
+              "name": "content",
+              "value": "={{ JSON.stringify($json.tasks) }}",
+              "type": "string"
+            },
+            {
+              "id": "tb7",
+              "name": "validation_report",
+              "value": "={{ JSON.stringify(Object.fromEntries(Object.entries($json).filter(([k]) => k !== \"tasks\"))) }}",
+              "type": "string"
+            },
+            {
+              "id": "tb8",
+              "name": "row_count",
+              "value": "={{ $json.total_tasks }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b2e1ec90-79d0-4a18-84d9-57a672724518",
+      "name": "Map Task Board Row",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        5792,
+        320
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "c7021561-4ed8-4c46-ac05-31aa0526238d",
+      "name": "Combine Rows to Save",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        7216,
+        1152
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "dr1",
+              "name": "snapshot_id",
+              "value": "={{ $json.source_snapshot_id }}",
+              "type": "string"
+            },
+            {
+              "id": "dr2",
+              "name": "uploaded_at",
+              "value": "={{ $json.uploaded_at }}",
+              "type": "string"
+            },
+            {
+              "id": "dr3",
+              "name": "file_name",
+              "value": "={{ $json.file_name }}",
+              "type": "string"
+            },
+            {
+              "id": "dr4",
+              "name": "file_type",
+              "value": "={{ $json.file_extension }}",
+              "type": "string"
+            },
+            {
+              "id": "dr5",
+              "name": "doc_kind",
+              "value": "={{ (() => { const n = String($json.file_name || '').toLowerCase(); const tabular = ['csv','xlsx','xlsm','xls'].includes($json.file_extension); if (/^(jira|trello)-/.test(n)) return 'work_items'; if (/^connector-fetch-log/.test(n)) return 'connector_log'; if (/risk/.test(n)) return tabular ? 'risks' : 'risk_document'; if (/timeline|schedule|milestone/.test(n)) return tabular ? 'timeline' : 'timeline_document'; if (/description|scope|charter/.test(n)) return 'project_description'; if (/intro|company|about/.test(n)) return 'company_intro'; if (/task|board|backlog/.test(n) && tabular) return 'task_board'; if (/^confluence-/.test(n)) return 'wiki_page'; if (/^sharepoint-/.test(n)) return 'sharepoint_file'; return 'other'; })() }}",
+              "type": "string"
+            },
+            {
+              "id": "dr6",
+              "name": "content",
+              "value": "={{ $json.content_kind === 'table' ? JSON.stringify($json.rows) : ($json.text || '') }}",
+              "type": "string"
+            },
+            {
+              "id": "dr7",
+              "name": "validation_report",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "dr8",
+              "name": "row_count",
+              "value": "={{ $json.row_count }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "39053526-6425-4ac3-868e-50fc9df067a4",
+      "name": "Map Document Row",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        6256,
+        -656
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "t1",
+              "name": "_source_file",
+              "value": "={{ $('Split Uploaded Files').item.json.file_name }}",
+              "type": "string"
+            },
+            {
+              "id": "t2",
+              "name": "_file_extension",
+              "value": "={{ $('Split Uploaded Files').item.json.file_extension }}",
+              "type": "string"
+            },
+            {
+              "id": "t3",
+              "name": "_mime_type",
+              "value": "={{ $('Split Uploaded Files').item.json.mime_type }}",
+              "type": "string"
+            },
+            {
+              "id": "t4",
+              "name": "_file_size_bytes",
+              "value": "={{ $('Split Uploaded Files').item.json.file_size_bytes }}",
+              "type": "number"
+            },
+            {
+              "id": "t5",
+              "name": "_file_fingerprint",
+              "value": "={{ $('Split Uploaded Files').item.json.file_fingerprint }}",
+              "type": "string"
+            },
+            {
+              "id": "t6",
+              "name": "_source_snapshot_id",
+              "value": "={{ $('Split Uploaded Files').item.json.source_snapshot_id }}",
+              "type": "string"
+            },
+            {
+              "id": "t7",
+              "name": "_snapshot_id_source",
+              "value": "={{ $('Split Uploaded Files').item.json.snapshot_id_source }}",
+              "type": "string"
+            },
+            {
+              "id": "t8",
+              "name": "_snapshot_fingerprint",
+              "value": "={{ $('Split Uploaded Files').item.json.snapshot_fingerprint }}",
+              "type": "string"
+            },
+            {
+              "id": "t9",
+              "name": "_data_as_of",
+              "value": "={{ $('Split Uploaded Files').item.json.data_as_of }}",
+              "type": "string"
+            },
+            {
+              "id": "t10",
+              "name": "_uploaded_at",
+              "value": "={{ $('Split Uploaded Files').item.json.uploaded_at }}",
+              "type": "string"
+            },
+            {
+              "id": "t11",
+              "name": "_project_name",
+              "value": "={{ $('Split Uploaded Files').item.json.project_name }}",
+              "type": "string"
+            },
+            {
+              "id": "t12",
+              "name": "_submitted_by",
+              "value": "={{ $('Split Uploaded Files').item.json.submitted_by }}",
+              "type": "string"
+            },
+            {
+              "id": "t13",
+              "name": "_extraction_status",
+              "value": "={{ $json.extraction_status || 'extracted' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "30722293-eb32-451f-8e2e-f1a52f7c0a40",
+      "name": "Tag Source Metadata",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1200,
+        -2096
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ ['csv','xlsx','xlsm','xls'].includes($json._file_extension) && (Object.keys($json).includes('task_id') || /task/i.test($json._source_file)) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1ed5a03c-cdf7-4dbd-a5fe-3b0e4c2916ba",
+      "name": "Is Task Board Row?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1424,
+        -2096
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "m1",
+              "name": "task_id",
+              "value": "={{ String($json.task_id ?? '').trim().toUpperCase() }}",
+              "type": "string"
+            },
+            {
+              "id": "m2",
+              "name": "task_name",
+              "value": "={{ String($json.task_name ?? '').trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "m3",
+              "name": "status",
+              "value": "={{ (() => { const raw = String($json.status ?? '').trim(); const k = raw.toLowerCase().replace(/[_-]+/g, ' ').replace(/ +/g, ' '); const map = { 'to do': 'To Do', 'todo': 'To Do', 'in progress': 'In Progress', 'done': 'Done', 'blocked': 'Blocked' }; return map[k] || raw; })() }}",
+              "type": "string"
+            },
+            {
+              "id": "m4",
+              "name": "assignee",
+              "value": "={{ String($json.assignee ?? '').trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "m5",
+              "name": "priority",
+              "value": "={{ (() => { const p = String($json.priority ?? '').trim(); return p ? p.charAt(0).toUpperCase() + p.slice(1).toLowerCase() : ''; })() }}",
+              "type": "string"
+            },
+            {
+              "id": "m6",
+              "name": "sprint",
+              "value": "={{ String($json.sprint ?? '').trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "m7",
+              "name": "due_date",
+              "value": "={{ String($json.due_date ?? '').trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "m8",
+              "name": "labels",
+              "value": "={{ String($json.labels ?? '').trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "m9",
+              "name": "description",
+              "value": "={{ String($json.description ?? '').trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "m10",
+              "name": "row_number",
+              "value": "={{ $itemIndex + 2 }}",
+              "type": "number"
+            },
+            {
+              "id": "m11",
+              "name": "detected_columns",
+              "value": "={{ Object.keys($json).filter(k => !k.startsWith('_')) }}",
+              "type": "array"
+            },
+            {
+              "id": "m12",
+              "name": "missing_columns",
+              "value": "={{ ['task_id','task_name','status','assignee','priority','sprint','due_date','labels','description'].filter(c => !Object.keys($json).includes(c)) }}",
+              "type": "array"
+            },
+            {
+              "id": "m13",
+              "name": "source_file",
+              "value": "={{ $json._source_file }}",
+              "type": "string"
+            },
+            {
+              "id": "m14",
+              "name": "file_fingerprint",
+              "value": "={{ $json._file_fingerprint }}",
+              "type": "string"
+            },
+            {
+              "id": "m15",
+              "name": "source_snapshot_id",
+              "value": "={{ $json._source_snapshot_id }}",
+              "type": "string"
+            },
+            {
+              "id": "m16",
+              "name": "snapshot_id_source",
+              "value": "={{ $json._snapshot_id_source }}",
+              "type": "string"
+            },
+            {
+              "id": "m17",
+              "name": "snapshot_fingerprint",
+              "value": "={{ $json._snapshot_fingerprint }}",
+              "type": "string"
+            },
+            {
+              "id": "m18",
+              "name": "data_as_of",
+              "value": "={{ $json._data_as_of }}",
+              "type": "string"
+            },
+            {
+              "id": "m19",
+              "name": "uploaded_at",
+              "value": "={{ $json._uploaded_at }}",
+              "type": "string"
+            },
+            {
+              "id": "m20",
+              "name": "project_name",
+              "value": "={{ $json._project_name }}",
+              "type": "string"
+            },
+            {
+              "id": "m21",
+              "name": "submitted_by",
+              "value": "={{ $json._submitted_by }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b116df5b-786a-491b-917e-504cf84e8eff",
+      "name": "Map Task Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        4224,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "v1",
+              "name": "validation_errors",
+              "value": "={{ (() => { const e = []; ['task_id','task_name','status','assignee','priority','sprint','due_date'].forEach(f => { if (!$json[f]) e.push('missing ' + f); }); if ($json.task_id && !/^T[0-9]{3,}$/.test($json.task_id)) e.push('invalid task_id format: ' + $json.task_id); if ($json.task_id && $input.all().filter(i => i.json.task_id === $json.task_id).length > 1) e.push('duplicate task_id: ' + $json.task_id); if ($json.status && !['To Do','In Progress','Done','Blocked'].includes($json.status)) e.push('invalid status: ' + $json.status); if ($json.priority && !['High','Medium','Low'].includes($json.priority)) e.push('invalid priority: ' + $json.priority); if ($json.sprint && !/^Sprint [0-9]+$/i.test($json.sprint)) e.push('invalid sprint: ' + $json.sprint); if ($json.due_date && !(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test($json.due_date) && DateTime.fromFormat($json.due_date, 'yyyy-MM-dd').isValid)) e.push('invalid due_date: ' + $json.due_date); return e; })() }}",
+              "type": "array"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "44838fc4-ab1b-476f-b6ee-7c765deb78f3",
+      "name": "Validate Task Rows",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        4448,
+        1472
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.validation_errors.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "68b0de75-6e41-476a-80be-6a9808af0326",
+      "name": "Keep Valid Task Rows",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        4672,
+        320
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "fieldsToSummarize": {
+          "values": [
+            {
+              "field": "task_id"
+            }
+          ]
+        },
+        "fieldsToSplitBy": "status",
+        "options": {
+          "skipEmptySplitFields": true
+        }
+      },
+      "id": "02966e32-a109-4f76-9fac-006ed5476448",
+      "name": "Count Tasks by Status",
+      "type": "n8n-nodes-base.summarize",
+      "typeVersion": 1.1,
+      "position": [
+        4896,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "r1",
+              "name": "report_type",
+              "value": "task_board_validation",
+              "type": "string"
+            },
+            {
+              "id": "r2",
+              "name": "project_name",
+              "value": "={{ $('Validate Task Rows').first().json.project_name }}",
+              "type": "string"
+            },
+            {
+              "id": "r3",
+              "name": "source_snapshot_id",
+              "value": "={{ $('Validate Task Rows').first().json.source_snapshot_id }}",
+              "type": "string"
+            },
+            {
+              "id": "r4",
+              "name": "snapshot_id_source",
+              "value": "={{ $('Validate Task Rows').first().json.snapshot_id_source }}",
+              "type": "string"
+            },
+            {
+              "id": "r5",
+              "name": "snapshot_fingerprint",
+              "value": "={{ $('Validate Task Rows').first().json.snapshot_fingerprint }}",
+              "type": "string"
+            },
+            {
+              "id": "r6",
+              "name": "source_files",
+              "value": "={{ [...new Set($('Validate Task Rows').all().map(i => i.json).map(r => r.source_file))] }}",
+              "type": "array"
+            },
+            {
+              "id": "r7",
+              "name": "source_file_fingerprints",
+              "value": "={{ [...new Set($('Validate Task Rows').all().map(i => i.json).map(r => r.source_file + ':' + r.file_fingerprint))] }}",
+              "type": "array"
+            },
+            {
+              "id": "r8",
+              "name": "submitted_by",
+              "value": "={{ $('Validate Task Rows').first().json.submitted_by }}",
+              "type": "string"
+            },
+            {
+              "id": "r9",
+              "name": "data_as_of",
+              "value": "={{ $('Validate Task Rows').first().json.data_as_of }}",
+              "type": "string"
+            },
+            {
+              "id": "r10",
+              "name": "uploaded_at",
+              "value": "={{ $('Validate Task Rows').first().json.uploaded_at }}",
+              "type": "string"
+            },
+            {
+              "id": "r11",
+              "name": "validated_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "r12",
+              "name": "freshness_age_days",
+              "value": "={{ (() => { const d = DateTime.fromISO(String($('Validate Task Rows').first().json.data_as_of || '')); return d.isValid ? Math.floor($now.startOf('day').diff(d.startOf('day'), 'days').days) : null; })() }}",
+              "type": "number"
+            },
+            {
+              "id": "r13",
+              "name": "freshness_status",
+              "value": "={{ (() => { const d = DateTime.fromISO(String($('Validate Task Rows').first().json.data_as_of || '')); if (!d.isValid) return 'unknown'; const age = Math.floor($now.startOf('day').diff(d.startOf('day'), 'days').days); return age < 0 ? 'future_dated' : (age <= 7 ? 'fresh' : 'stale'); })() }}",
+              "type": "string"
+            },
+            {
+              "id": "r14",
+              "name": "expected_columns",
+              "value": "={{ ['task_id','task_name','status','assignee','priority','sprint','due_date','labels','description'] }}",
+              "type": "array"
+            },
+            {
+              "id": "r15",
+              "name": "detected_columns",
+              "value": "={{ $('Validate Task Rows').first().json.detected_columns }}",
+              "type": "array"
+            },
+            {
+              "id": "r16",
+              "name": "missing_columns",
+              "value": "={{ $('Validate Task Rows').first().json.missing_columns }}",
+              "type": "array"
+            },
+            {
+              "id": "r17",
+              "name": "unexpected_columns",
+              "value": "={{ $('Validate Task Rows').first().json.detected_columns.filter(c => !['task_id','task_name','status','assignee','priority','sprint','due_date','labels','description'].includes(c)) }}",
+              "type": "array"
+            },
+            {
+              "id": "r18",
+              "name": "total_tasks",
+              "value": "={{ $('Validate Task Rows').all().map(i => i.json).length }}",
+              "type": "number"
+            },
+            {
+              "id": "r19",
+              "name": "valid_tasks",
+              "value": "={{ $('Validate Task Rows').all().map(i => i.json).filter(r => r.validation_errors.length === 0).length }}",
+              "type": "number"
+            },
+            {
+              "id": "r20",
+              "name": "invalid_tasks",
+              "value": "={{ $('Validate Task Rows').all().map(i => i.json).filter(r => r.validation_errors.length > 0).length }}",
+              "type": "number"
+            },
+            {
+              "id": "r21",
+              "name": "invalid_rows",
+              "value": "={{ $('Validate Task Rows').all().map(i => i.json).filter(r => r.validation_errors.length > 0).map(r => ({ row_number: r.row_number, task_id: r.task_id, errors: r.validation_errors })) }}",
+              "type": "array"
+            },
+            {
+              "id": "r22",
+              "name": "duplicate_task_ids",
+              "value": "={{ [...new Set($('Validate Task Rows').all().map(i => i.json).map(r => r.task_id).filter((id, idx, all) => id && all.indexOf(id) !== idx))] }}",
+              "type": "array"
+            },
+            {
+              "id": "r23",
+              "name": "status_counts",
+              "value": "={{ Object.assign({ 'To Do': 0, 'In Progress': 0, 'Done': 0, 'Blocked': 0 }, Object.fromEntries($input.all().filter(i => i.json.status).map(i => [i.json.status, i.json.count_task_id]))) }}",
+              "type": "object"
+            },
+            {
+              "id": "r24",
+              "name": "blocked_count",
+              "value": "={{ $('Validate Task Rows').all().map(i => i.json).filter(r => r.validation_errors.length === 0).filter(r => r.status === 'Blocked').length }}",
+              "type": "number"
+            },
+            {
+              "id": "r25",
+              "name": "blocked_tasks",
+              "value": "={{ $('Validate Task Rows').all().map(i => i.json).filter(r => r.validation_errors.length === 0).filter(r => r.status === 'Blocked').map(r => ({ task_id: r.task_id, task_name: r.task_name, assignee: r.assignee, priority: r.priority, sprint: r.sprint, due_date: r.due_date, description: r.description })) }}",
+              "type": "array"
+            },
+            {
+              "id": "r26",
+              "name": "earliest_due_date",
+              "value": "={{ $('Validate Task Rows').all().map(i => i.json).filter(r => r.validation_errors.length === 0).map(r => r.due_date).sort()[0] || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "r27",
+              "name": "latest_due_date",
+              "value": "={{ $('Validate Task Rows').all().map(i => i.json).filter(r => r.validation_errors.length === 0).map(r => r.due_date).sort().pop() || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "r28",
+              "name": "tasks",
+              "value": "={{ $('Validate Task Rows').all().map(i => i.json).filter(r => r.validation_errors.length === 0).map(r => ({ task_id: r.task_id, task_name: r.task_name, status: r.status, assignee: r.assignee, priority: r.priority, sprint: r.sprint, due_date: r.due_date, labels: r.labels, description: r.description })) }}",
+              "type": "array"
+            },
+            {
+              "id": "r29",
+              "name": "validation_passed",
+              "value": "={{ $('Validate Task Rows').all().map(i => i.json).length > 0 && $('Validate Task Rows').first().json.missing_columns.length === 0 && $('Validate Task Rows').all().map(i => i.json).every(r => r.validation_errors.length === 0) }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9cd008ec-0b57-4ad5-a201-8deff435ed2a",
+      "name": "Build Validation Report",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        5120,
+        320
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.validation_passed }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "id": "7741c250-7f98-48d6-ae09-2513d9bb1da9"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "618afe23-ba1b-4a3e-8b2e-be33915b008d",
+      "name": "Validation Passed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        5344,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "validation_status",
+              "value": "PASSED",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "ready_for_mira",
+              "value": true,
+              "type": "boolean"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "9ce30fcc-b11b-4be1-b3fb-07902ef43694",
+      "name": "Approve Validated Snapshot",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        5568,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f1",
+              "name": "validation_status",
+              "value": "FAILED",
+              "type": "string"
+            },
+            {
+              "id": "f2",
+              "name": "ready_for_mira",
+              "value": false,
+              "type": "boolean"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "da4ecf9a-dcb9-4598-b126-f6c854bff41d",
+      "name": "Flag Validation Failure",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        5568,
+        416
+      ]
+    },
+    {
+      "parameters": {
+        "fieldsToSummarize": {
+          "values": [
+            {
+              "field": "_source_file"
+            }
+          ]
+        },
+        "fieldsToSplitBy": "_source_file",
+        "options": {}
+      },
+      "id": "8725385e-0d9d-456b-abfd-2a338506a834",
+      "name": "Group Supporting Files",
+      "type": "n8n-nodes-base.summarize",
+      "typeVersion": 1.1,
+      "position": [
+        4992,
+        -1808
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d1",
+              "name": "file_name",
+              "value": "={{ $json._source_file }}",
+              "type": "string"
+            },
+            {
+              "id": "d2",
+              "name": "file_extension",
+              "value": "={{ $('Is Task Board Row?').all(1).map(i => i.json).filter(r => r._source_file === $json._source_file)[0]._file_extension }}",
+              "type": "string"
+            },
+            {
+              "id": "d3",
+              "name": "mime_type",
+              "value": "={{ $('Is Task Board Row?').all(1).map(i => i.json).filter(r => r._source_file === $json._source_file)[0]._mime_type }}",
+              "type": "string"
+            },
+            {
+              "id": "d4",
+              "name": "file_size_bytes",
+              "value": "={{ $('Is Task Board Row?').all(1).map(i => i.json).filter(r => r._source_file === $json._source_file)[0]._file_size_bytes }}",
+              "type": "number"
+            },
+            {
+              "id": "d5",
+              "name": "file_fingerprint",
+              "value": "={{ $('Is Task Board Row?').all(1).map(i => i.json).filter(r => r._source_file === $json._source_file)[0]._file_fingerprint }}",
+              "type": "string"
+            },
+            {
+              "id": "d6",
+              "name": "source_snapshot_id",
+              "value": "={{ $('Is Task Board Row?').all(1).map(i => i.json).filter(r => r._source_file === $json._source_file)[0]._source_snapshot_id }}",
+              "type": "string"
+            },
+            {
+              "id": "d7",
+              "name": "data_as_of",
+              "value": "={{ $('Is Task Board Row?').all(1).map(i => i.json).filter(r => r._source_file === $json._source_file)[0]._data_as_of }}",
+              "type": "string"
+            },
+            {
+              "id": "d8",
+              "name": "uploaded_at",
+              "value": "={{ $('Is Task Board Row?').all(1).map(i => i.json).filter(r => r._source_file === $json._source_file)[0]._uploaded_at }}",
+              "type": "string"
+            },
+            {
+              "id": "d9",
+              "name": "extraction_status",
+              "value": "={{ $('Is Task Board Row?').all(1).map(i => i.json).filter(r => r._source_file === $json._source_file)[0]._extraction_status }}",
+              "type": "string"
+            },
+            {
+              "id": "d10",
+              "name": "content_kind",
+              "value": "={{ ['csv','xlsx','xlsm','xls'].includes($('Is Task Board Row?').all(1).map(i => i.json).filter(r => r._source_file === $json._source_file)[0]._file_extension) ? 'table' : ($('Is Task Board Row?').all(1).map(i => i.json).filter(r => r._source_file === $json._source_file)[0]._extraction_status === 'extracted' ? 'text' : 'metadata_only') }}",
+              "type": "string"
+            },
+            {
+              "id": "d11",
+              "name": "row_count",
+              "value": "={{ ['csv','xlsx','xlsm','xls'].includes($('Is Task Board Row?').all(1).map(i => i.json).filter(r => r._source_file === $json._source_file)[0]._file_extension) ? $('Is Task Board Row?').all(1).map(i => i.json).filter(r => r._source_file === $json._source_file).length : 0 }}",
+              "type": "number"
+            },
+            {
+              "id": "d12",
+              "name": "columns",
+              "value": "={{ ['csv','xlsx','xlsm','xls'].includes($('Is Task Board Row?').all(1).map(i => i.json).filter(r => r._source_file === $json._source_file)[0]._file_extension) ? Object.keys($('Is Task Board Row?').all(1).map(i => i.json).filter(r => r._source_file === $json._source_file)[0]).filter(k => !k.startsWith('_')) : [] }}",
+              "type": "array"
+            },
+            {
+              "id": "d13",
+              "name": "rows",
+              "value": "={{ ['csv','xlsx','xlsm','xls'].includes($('Is Task Board Row?').all(1).map(i => i.json).filter(r => r._source_file === $json._source_file)[0]._file_extension) ? $('Is Task Board Row?').all(1).map(i => i.json).filter(r => r._source_file === $json._source_file).map(r => Object.fromEntries(Object.entries(r).filter(([k]) => !k.startsWith('_')))) : [] }}",
+              "type": "array"
+            },
+            {
+              "id": "d14",
+              "name": "text",
+              "value": "={{ ['csv','xlsx','xlsm','xls'].includes($('Is Task Board Row?').all(1).map(i => i.json).filter(r => r._source_file === $json._source_file)[0]._file_extension) ? '' : String($('Is Task Board Row?').all(1).map(i => i.json).filter(r => r._source_file === $json._source_file)[0].text || '').trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "d15",
+              "name": "char_count",
+              "value": "={{ String($('Is Task Board Row?').all(1).map(i => i.json).filter(r => r._source_file === $json._source_file)[0].text || '').trim().length }}",
+              "type": "number"
+            },
+            {
+              "id": "d16",
+              "name": "word_count",
+              "value": "={{ String($('Is Task Board Row?').all(1).map(i => i.json).filter(r => r._source_file === $json._source_file)[0].text || '').trim().split(/[ \\n\\t]+/).filter(w => w).length }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b75afd4c-7d39-4832-af5f-b0880993722c",
+      "name": "Map Document Record",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        5216,
+        -656
+      ]
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "documents",
+        "options": {}
+      },
+      "id": "878d33ab-eaf8-4821-986f-4be3b040ffd9",
+      "name": "Aggregate Documents",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        5440,
+        -1808
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c1",
+              "name": "report_type",
+              "value": "supporting_document_catalog",
+              "type": "string"
+            },
+            {
+              "id": "c2",
+              "name": "source_snapshot_id",
+              "value": "={{ $json.documents[0].source_snapshot_id }}",
+              "type": "string"
+            },
+            {
+              "id": "c3",
+              "name": "data_as_of",
+              "value": "={{ $json.documents[0].data_as_of }}",
+              "type": "string"
+            },
+            {
+              "id": "c4",
+              "name": "uploaded_at",
+              "value": "={{ $json.documents[0].uploaded_at }}",
+              "type": "string"
+            },
+            {
+              "id": "c5",
+              "name": "catalogued_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "c6",
+              "name": "document_count",
+              "value": "={{ $json.documents.length }}",
+              "type": "number"
+            },
+            {
+              "id": "c7",
+              "name": "has_project_description",
+              "value": "={{ $json.documents.some(d => /description/i.test(d.file_name) && d.char_count > 0) }}",
+              "type": "boolean"
+            },
+            {
+              "id": "c8",
+              "name": "unsupported_files",
+              "value": "={{ $json.documents.filter(d => d.content_kind === 'metadata_only').map(d => d.file_name) }}",
+              "type": "array"
+            },
+            {
+              "id": "c9",
+              "name": "documents",
+              "value": "={{ $json.documents }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "adf04dfc-18d3-46bb-a583-bb3387dfab78",
+      "name": "Build Document Catalog",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        5664,
+        -1808
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "documents",
+        "options": {}
+      },
+      "id": "bc918cec-4ef3-42e2-88f2-e0c79d6c03f0",
+      "name": "Split Out Documents",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1.1,
+      "position": [
+        6064,
+        -2272
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "fs2hJS7JkszRUeSL",
+          "cachedResultName": "MIRA_Project_Data"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "snapshot_id": "={{ $json.snapshot_id }}",
+            "uploaded_at": "={{ $json.uploaded_at }}",
+            "file_name": "={{ $json.file_name }}",
+            "file_type": "={{ $json.file_type }}",
+            "doc_kind": "={{ $json.doc_kind }}",
+            "content": "={{ $json.content }}",
+            "validation_report": "={{ $json.validation_report }}",
+            "row_count": "={{ $json.row_count }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "snapshot_id",
+              "displayName": "snapshot_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "uploaded_at",
+              "displayName": "uploaded_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "file_name",
+              "displayName": "file_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "file_type",
+              "displayName": "file_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "doc_kind",
+              "displayName": "doc_kind",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "content",
+              "displayName": "content",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "validation_report",
+              "displayName": "validation_report",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "row_count",
+              "displayName": "row_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "a441afc0-4b55-451a-ae2b-2cdf0e709380",
+      "name": "Save to MIRA Project Data",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        7168,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ (() => { try { return $('Build Validation Report').isExecuted ? $('Build Validation Report').first().json.validation_passed === true : true; } catch (e) { return true; } })() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "id": "b1d058bc-054a-4bde-99cd-f29483f92203"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "87c2ec1f-b13f-4286-8dfa-41aedbd554a0",
+      "name": "Valid Data for Mira?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        7664,
+        1152
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "d9DGHGp0AlgRR548",
+          "cachedResultName": "Mira_00_Orchestrator"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "snapshot_id": "={{ $('Combine Rows to Save').first().json.snapshot_id }}",
+            "capabilities": "plan,risk,status,milestone",
+            "request_type": "all"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "snapshot_id",
+              "displayName": "snapshot_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "request_text",
+              "displayName": "request_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "capabilities",
+              "displayName": "capabilities",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "test_case_id",
+              "displayName": "test_case_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "request_type",
+              "displayName": "request_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "27bd928d-469f-4118-8191-a64421a76f53",
+      "name": "Run Mira Orchestrator",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        8112,
+        1152
+      ],
+      "executeOnce": true,
+      "disabled": true
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        7392,
+        448
+      ],
+      "id": "c5adc28e-8aca-42ad-aeee-cd8cf8f5dd97",
+      "name": "Limit"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "6rrIP5YiF4Kl11pm",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/6rrIP5YiF4Kl11pm",
+          "cachedResultName": "Mira_99_Evaluation_Harness"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "snapshot_id": "={{ $json.snapshot_id }}"
+          },
+          "matchingColumns": [
+            "snapshot_id"
+          ],
+          "schema": [
+            {
+              "id": "snapshot_id",
+              "displayName": "snapshot_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        7840,
+        896
+      ],
+      "id": "3fbd53f3-c94d-40b3-bca4-881314e36435",
+      "name": "Run Mira Evaluation Harness"
+    }
+  ],
+  "connections": {
+    "Project File Upload Form": {
+      "main": [
+        [
+          {
+            "node": "SharePoint Links Given?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SharePoint Links Given?": {
+      "main": [
+        [
+          {
+            "node": "Prepare SharePoint Links",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Jira Key Given?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare SharePoint Links": {
+      "main": [
+        [
+          {
+            "node": "Get SharePoint File Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get SharePoint File Info": {
+      "main": [
+        [
+          {
+            "node": "Download SharePoint File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download SharePoint File": {
+      "main": [
+        [
+          {
+            "node": "Jira Key Given?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Jira Key Given?": {
+      "main": [
+        [
+          {
+            "node": "Get Jira Issues",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Trello Board Given?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Jira Issues": {
+      "main": [
+        [
+          {
+            "node": "Trello Board Given?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trello Board Given?": {
+      "main": [
+        [
+          {
+            "node": "Get Trello Board",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Confluence Space Given?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Trello Board": {
+      "main": [
+        [
+          {
+            "node": "Confluence Space Given?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confluence Space Given?": {
+      "main": [
+        [
+          {
+            "node": "Get Confluence Pages",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Attach Connector Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Confluence Pages": {
+      "main": [
+        [
+          {
+            "node": "Attach Connector Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attach Connector Files": {
+      "main": [
+        [
+          {
+            "node": "Split Uploaded Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Uploaded Files": {
+      "main": [
+        [
+          {
+            "node": "Route by File Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by File Type": {
+      "main": [
+        [
+          {
+            "node": "Extract CSV Rows",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract XLSX Rows",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract Text File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract PDF Text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Unpack Word/PowerPoint",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract XLS Rows",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Flag Content Not Extracted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract CSV Rows": {
+      "main": [
+        [
+          {
+            "node": "Collect Extracted Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract XLSX Rows": {
+      "main": [
+        [
+          {
+            "node": "Collect Extracted Content",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Extract Text File": {
+      "main": [
+        [
+          {
+            "node": "Collect Extracted Content",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Extract PDF Text": {
+      "main": [
+        [
+          {
+            "node": "Collect Extracted Content",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Unpack Word/PowerPoint": {
+      "main": [
+        [
+          {
+            "node": "Read Word/PowerPoint Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Word/PowerPoint Text": {
+      "main": [
+        [
+          {
+            "node": "Collect Extracted Content",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "Extract XLS Rows": {
+      "main": [
+        [
+          {
+            "node": "Collect Extracted Content",
+            "type": "main",
+            "index": 6
+          }
+        ]
+      ]
+    },
+    "Flag Content Not Extracted": {
+      "main": [
+        [
+          {
+            "node": "Collect Extracted Content",
+            "type": "main",
+            "index": 5
+          }
+        ]
+      ]
+    },
+    "Import From Google Drive": {
+      "main": [
+        [
+          {
+            "node": "List Drive Project Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List Drive Project Files": {
+      "main": [
+        [
+          {
+            "node": "Keep Mira Data Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keep Mira Data Files": {
+      "main": [
+        [
+          {
+            "node": "Download Drive File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Drive File": {
+      "main": [
+        [
+          {
+            "node": "Bundle Drive Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bundle Drive Files": {
+      "main": [
+        [
+          {
+            "node": "Split Uploaded Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Capstone Sample Test": {
+      "main": [
+        [
+          {
+            "node": "Load Capstone Sample Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Capstone Sample Files": {
+      "main": [
+        [
+          {
+            "node": "Split Uploaded Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect Extracted Content": {
+      "main": [
+        [
+          {
+            "node": "Tag Source Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map Task Board Row": {
+      "main": [
+        [
+          {
+            "node": "Combine Rows to Save",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Rows to Save": {
+      "main": [
+        [
+          {
+            "node": "Save to MIRA Project Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map Document Row": {
+      "main": [
+        [
+          {
+            "node": "Combine Rows to Save",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Tag Source Metadata": {
+      "main": [
+        [
+          {
+            "node": "Is Task Board Row?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Task Board Row?": {
+      "main": [
+        [
+          {
+            "node": "Map Task Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Group Supporting Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map Task Fields": {
+      "main": [
+        [
+          {
+            "node": "Validate Task Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Task Rows": {
+      "main": [
+        [
+          {
+            "node": "Keep Valid Task Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keep Valid Task Rows": {
+      "main": [
+        [
+          {
+            "node": "Count Tasks by Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Count Tasks by Status": {
+      "main": [
+        [
+          {
+            "node": "Build Validation Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Validation Report": {
+      "main": [
+        [
+          {
+            "node": "Validation Passed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validation Passed?": {
+      "main": [
+        [
+          {
+            "node": "Approve Validated Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Flag Validation Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approve Validated Snapshot": {
+      "main": [
+        [
+          {
+            "node": "Map Task Board Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flag Validation Failure": {
+      "main": [
+        [
+          {
+            "node": "Map Task Board Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Group Supporting Files": {
+      "main": [
+        [
+          {
+            "node": "Map Document Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map Document Record": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Documents": {
+      "main": [
+        [
+          {
+            "node": "Build Document Catalog",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Document Catalog": {
+      "main": [
+        [
+          {
+            "node": "Split Out Documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out Documents": {
+      "main": [
+        [
+          {
+            "node": "Map Document Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to MIRA Project Data": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valid Data for Mira?": {
+      "main": [
+        [
+          {
+            "node": "Run Mira Evaluation Harness",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Run Mira Orchestrator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "Valid Data for Mira?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Mira Evaluation Harness": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "nodeGroups": [
+    {
+      "id": "d32c6b8b-f0f2-477a-92d6-f1155c86f562",
+      "name": "Import Drive project files",
+      "nodeIds": [
+        "d07acacf-4e42-4eeb-9ed0-468cdb05a907",
+        "f1e25555-fd1f-4862-b14f-aba558b80ec8",
+        "22659eb9-37ac-41b3-aaca-97810daabd6b",
+        "7010d96c-3af0-4572-b2c9-f86350991d86"
+      ],
+      "description": "Manual run: pulls all project and knowledge-base files from the shared Drive folder (except eval inputs) as one upload"
+    },
+    {
+      "id": "69f64934-253a-49a9-8f96-a42eb19eb0e9",
+      "name": "Extract file contents",
+      "nodeIds": [
+        "4fc55d17-0a70-4b69-a7b1-dfcd2983c226",
+        "cff7a9b0-268f-44b7-a64e-a9c341d511d4",
+        "cee83a1f-9747-4440-a2ec-4197f6b52acd",
+        "d38eeea7-a8be-4b2c-8456-f571b36ef4ff",
+        "5b52f1b9-8975-44fe-b917-882299730edf",
+        "65b509bf-2181-4320-85a6-b3df95afa438",
+        "5983b7b2-5c82-4aa9-a6d8-0dc9fc49aacc",
+        "7e8291b6-e6a7-496f-badb-5e39bfcc5132",
+        "f906a3a0-8ff6-436b-8e50-890b5f56a84f",
+        "e7d393a2-d096-423d-ab8e-745cead743f0",
+        "2c5fbe03-6b00-4721-b9ce-f948689dca89",
+        "30722293-eb32-451f-8e2e-f1a52f7c0a40",
+        "1ed5a03c-cdf7-4dbd-a5fe-3b0e4c2916ba"
+      ],
+      "description": "Reads PDF, Word, Excel, CSV, PowerPoint, text and MS Project XML; DOC, PPT and MPP are kept but flagged as not extracted"
+    },
+    {
+      "id": "fc46aced-d073-4cce-b4c7-170ec8c4a6d3",
+      "name": "Pull connected sources",
+      "nodeIds": [
+        "4dd29e7d-76b4-440d-8bca-1b1cf218752e",
+        "ca414da7-f08c-4906-9aa4-f2c61d1a0a9e",
+        "583c52de-7ddd-4b41-9c72-5d147d19fd7f",
+        "50bdf95b-c7a1-4162-b32a-9dbd37803f5f",
+        "45f4e3e7-3659-4b45-8704-2a2849de3bb5",
+        "cc7d48c9-d317-4048-a92f-04834c4c8cee",
+        "3bf4e957-1175-40ae-83ad-e86e319d0fbc",
+        "42ad6663-ea90-41e6-aa7c-8241162ef07e",
+        "5c913d39-c195-4147-b4fb-28fbfd469dca",
+        "51c95ab8-db9e-4495-a05b-0c8bd6b0b23f",
+        "a5d05981-08ee-4410-82ff-e42f6189f64c"
+      ],
+      "description": "Only for fields filled on the form: fetches SharePoint files, Jira issues, Trello cards and Confluence pages as extra upload files"
+    },
+    {
+      "id": "98edc64a-9d8b-4572-95ad-93be11f7371f",
+      "name": "Validate task board",
+      "nodeIds": [
+        "b116df5b-786a-491b-917e-504cf84e8eff",
+        "44838fc4-ab1b-476f-b6ee-7c765deb78f3",
+        "68b0de75-6e41-476a-80be-6a9808af0326",
+        "02966e32-a109-4f76-9fac-006ed5476448",
+        "9cd008ec-0b57-4ad5-a201-8deff435ed2a",
+        "618afe23-ba1b-4a3e-8b2e-be33915b008d",
+        "9ce30fcc-b11b-4be1-b3fb-07902ef43694",
+        "da4ecf9a-dcb9-4598-b126-f6c854bff41d",
+        "b2e1ec90-79d0-4a18-84d9-57a672724518"
+      ],
+      "description": "Checks columns, required fields, task IDs, statuses and dates, counts tasks by status, lists blocked tasks, and marks pass or fail"
+    },
+    {
+      "id": "59967f1b-8721-4f23-8645-94a6963399c9",
+      "name": "Store and run Mira",
+      "nodeIds": [
+        "c7021561-4ed8-4c46-ac05-31aa0526238d",
+        "a441afc0-4b55-451a-ae2b-2cdf0e709380",
+        "87c2ec1f-b13f-4286-8dfa-41aedbd554a0",
+        "27bd928d-469f-4118-8191-a64421a76f53",
+        "c5adc28e-8aca-42ad-aeee-cd8cf8f5dd97",
+        "3fbd53f3-c94d-40b3-bca4-881314e36435"
+      ],
+      "description": "Saves all processed rows once; only when task-board validation passed does Mira generate draft reports for this snapshot"
+    },
+    {
+      "id": "35c79593-f9c4-4c09-b667-d8deaab96310",
+      "name": "Catalog supporting files",
+      "nodeIds": [
+        "8725385e-0d9d-456b-abfd-2a338506a834",
+        "b75afd4c-7d39-4832-af5f-b0880993722c",
+        "878d33ab-eaf8-4821-986f-4be3b040ffd9",
+        "adf04dfc-18d3-46bb-a583-bb3387dfab78",
+        "bc918cec-4ef3-42e2-88f2-e0c79d6c03f0",
+        "39053526-6425-4ac3-868e-50fc9df067a4"
+      ],
+      "description": "Project description, risk tables and other files become one catalog entry each, with text or rows ready for MIRA"
+    }
+  ],
+  "tags": []
+}

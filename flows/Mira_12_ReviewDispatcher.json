@@ -1,0 +1,985 @@
+{
+  "name": "Mira_12_ReviewDispatcher",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "\n\n{\n  \"run_id\": \"\",\n  \"snapshot_id\": \"\",\n  \"project_name\": \"\",\n  \"document_version\": \"1.0\",\n  \"reviewer_email\": \"\",\n  \"file_type\": \"pdf\",\n  \"file_id\": \"\",\n  \"file_url\": \"\",\n  \"request_id\": \"\",\n  \"review_type\": \"document\",\n  \"capability\": \"\",\n  \"requested_capabilities\": [],\n  \"report_title\": \"\",\n  \"report_content\": \"\",\n  \"draft_only\": true\n}\n"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "bf8ceb12-3795-4787-b403-95ef25aeace2",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "const r = $input.first().json;\nconst clean = v => String(v ?? '').trim();\n\nconst reviewType = clean(\n  r.review_type || 'document'\n).toLowerCase();\n\nif (!['document', 'report'].includes(reviewType)) {\n  throw new Error('Invalid review_type');\n}\n\nconst required = [\n  'run_id',\n  'snapshot_id',\n  'project_name',\n  'reviewer_email'\n];\n\nif (reviewType === 'document') {\n  required.push(\n    'document_version',\n    'file_type',\n    'file_id',\n    'file_url'\n  );\n} else {\n  required.push('report_content');\n}\n\nfor (const field of required) {\n  if (!clean(r[field])) {\n    throw new Error(`Missing ${field}`);\n  }\n}\n\nconst reviewer = clean(r.reviewer_email).toLowerCase();\n\nif (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(reviewer)) {\n  throw new Error('Invalid reviewer_email');\n}\n\nlet fileType = '';\nlet fileUrl = '';\n\nif (reviewType === 'document') {\n  fileType = clean(r.file_type).toLowerCase();\n\n  if (!['docx', 'pdf', 'pptx'].includes(fileType)) {\n    throw new Error('Invalid file_type');\n  }\n\n  fileUrl = clean(r.file_url);\n\n  if (!/^https:\\/\\/(drive|docs)\\.google\\.com\\//i.test(fileUrl)) {\n    throw new Error('Expected a Google Drive document URL');\n  }\n}\n\nreturn [{\n  json: {\n    ...r,\n    run_id: clean(r.run_id),\n    snapshot_id: clean(r.snapshot_id),\n    project_name: clean(r.project_name),\n    reviewer_email: reviewer,\n    review_type: reviewType,\n    document_version:\n      clean(r.document_version) || '1.0',\n    file_type: fileType,\n    file_id: clean(r.file_id),\n    file_url: fileUrl,\n    report_content:\n      reviewType === 'report'\n        ? clean(r.report_content)\n        : '',\n    review_id: 'REV-' + $execution.id,\n    status: 'pending_review',\n    requested_at: new Date().toISOString()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "3470f47c-0ff0-4ea7-8d4f-612b80a057ec",
+      "name": "Validate Review Request"
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "sendTo": "={{ $('Validate Review Request').first().json.reviewer_email }}",
+        "subject": "={{ (() => {\n  const r = $('Validate Review Request').first().json;\n  const review = $('MIRA_Document_Reviews').first().json;\n\n  const labels = {\n    plan: 'Project Plan',\n    risk: 'Risk Assessment',\n    status: 'Status Report',\n    milestone: 'Milestone Tracker',\n    stakeholder_update: 'Stakeholder Update'\n  };\n\n  const capability = labels[r.capability] || 'Project Report';\n\n  return `MIRA | Approval Required | ${r.project_name} | ${capability} | ${review.review_id}`;\n})() }}\n",
+        "message": "={{ (() => {\n  const r = $('Validate Review Request').first().json;\n  const review = $('MIRA_Document_Reviews').first().json;\n\n  const esc = v => String(v ?? '')\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\"/g, '&quot;')\n    .replace(/'/g, '&#39;');\n\n  const labels = {\n    plan: 'Project Plan',\n    risk: 'Risk Assessment',\n    status: 'Status Report',\n    milestone: 'Milestone Tracker',\n    stakeholder_update: 'Stakeholder Update'\n  };\n\n  const capability = labels[r.capability] || 'Project Report';\n\n  const raw = String(r.report_content || '')\n    .replace(/<details>[\\s\\S]*?<\\/details>/gi, '')\n    .replace(/```json[\\s\\S]*?```/gi, '');\n\n  // Extract one Markdown section without raw markup.\n  const section = title => {\n    const escaped = title.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');\n    const match = raw.match(\n      new RegExp(\n        '^## ' + escaped + '\\\\s*\\\\n([\\\\s\\\\S]*?)(?=^## |^---\\\\s*$|$)',\n        'mi'\n      )\n    );\n    return match ? match[1].trim() : '';\n  };\n\n  const plain = value => String(value || '')\n    .replace(/\\*\\*/g, '')\n    .replace(/^#{1,6}\\s+/gm, '')\n    .replace(/^\\s*-\\s+/gm, '• ')\n    .trim();\n\n  const summary =\n    section('Executive Summary') ||\n    (raw.match(/\\*\\*Summary:\\*\\*\\s*([^\\n]+)/i)?.[1] || '') ||\n    section('Objectives') ||\n    'See the complete stored report for details.';\n\n  const sectionsByCapability = {\n    plan: ['Objectives', 'Scope'],\n    risk: ['Risk Register', 'High Priority Risks'],\n    status: ['Task Progress', 'Highlights'],\n    milestone: ['Upcoming Milestones', 'Milestones'],\n    stakeholder_update: ['Upcoming Activities', 'Risks and Blockers']\n  };\n\n  const wanted = sectionsByCapability[r.capability] || [];\n\n  const findings = wanted.map(title => {\n    const content = section(title);\n    if (!content) return '';\n\n    const short = plain(content)\n      .split('\\n')\n      .filter(Boolean)\n      .slice(0, 5)\n      .join('\\n');\n\n    return `<h4>${esc(title)}</h4>\n      <p style=\"white-space:pre-line\">${esc(short)}</p>`;\n  }).filter(Boolean).join('');\n\n  const gaps = section('Data Gaps');\n\n  const validation = raw.match(\n    /\\*\\*Report validation:\\*\\*\\s*([A-Z_]+)/i\n  )?.[1] || 'NOT REPORTED';\n\n  return `\n  <div style=\"font-family:Arial,sans-serif;\n              color:#263247;max-width:700px;\n              margin:auto;line-height:1.6;\">\n\n    <h2 style=\"color:#253d77\">\n      MIRA – Project Intelligence\n    </h2>\n\n    <h3>Report Review Required</h3>\n\n    <p>An AI-generated project report is ready\n    for your review.</p>\n\n    <table style=\"width:100%;border-collapse:collapse;\">\n      <tr><td><b>Project</b></td>\n          <td>${esc(r.project_name)}</td></tr>\n      <tr><td><b>Capability</b></td>\n          <td>${esc(capability)}</td></tr>\n      <tr><td><b>Review ID</b></td>\n          <td>${esc(review.review_id)}</td></tr>\n      <tr><td><b>Run ID</b></td>\n          <td>${esc(r.run_id)}</td></tr>\n      <tr><td><b>Version</b></td>\n          <td>${esc(r.document_version || '1.0')}</td></tr>\n      <tr><td><b>Report Validation</b></td>\n          <td>${esc(validation)}</td></tr>\n      <tr><td><b>Review Status</b></td>\n          <td>Pending Review</td></tr>\n    </table>\n\n    <hr style=\"border:0;border-top:1px solid #ddd;\">\n\n    <h3>Executive Summary</h3>\n    <p style=\"white-space:pre-line\">\n      ${esc(plain(summary))}\n    </p>\n\n    ${findings}\n\n    ${gaps ? `\n      <h3>Data Limitations</h3>\n      <p style=\"white-space:pre-line\">\n        ${esc(plain(gaps).split('\\n').slice(0, 4).join('\\n'))}\n      </p>\n    ` : ''}\n\n    <hr style=\"border:0;border-top:1px solid #ddd;\">\n\n    <h3>Reviewer Action</h3>\n    <p>Please review the complete stored draft\n    before choosing Approve or Decline.\n    You may enter reviewer comments in the\n    review form.</p>\n\n    <p style=\"font-size:12px;color:#666\">\n      This is an AI-generated draft. Approval applies\n      only to this review ID and version and does not\n      automatically authorize external distribution.\n    </p>\n\n    <p><b>MIRA – AI-Powered Project Intelligence Assistant</b></p>\n  </div>`;\n})() }}",
+        "responseType": "customForm",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Review_decision",
+              "fieldType": "dropdown",
+              "defaultValue": "Approve",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Approve"
+                  },
+                  {
+                    "option": "Decline"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Reviewer_comments",
+              "fieldType": "textarea"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        704,
+        0
+      ],
+      "id": "88837c9a-e62b-4393-bc7a-3a70c5d30582",
+      "name": "Send message and wait for response"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "Ebae1QOsmHzjnNYD",
+          "mode": "list",
+          "cachedResultName": "MIRA_Document_Reviews",
+          "cachedResultUrl": "/projects/FGEpkWtn93BkXeAj/datatables/Ebae1QOsmHzjnNYD"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "=review_id",
+              "keyValue": "={{ $('Validate Review Request').first().json.review_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "approved",
+            "decided_at": "={{ $('Send message and wait for response').first().json.data.respondedAt }}  ",
+            "Reviewer_Comments": "={{ $('Send message and wait for response').first().json.data.Reviewer_comments ?? '' }}\n}}",
+            "Review_decision": "= {{ $('Send message and wait for response').first().json.data.Review_decision }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "review_id",
+              "displayName": "review_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "snapshot_id",
+              "displayName": "snapshot_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "project_name",
+              "displayName": "project_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "document_version",
+              "displayName": "document_version",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "reviewer_email",
+              "displayName": "reviewer_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "file_type",
+              "displayName": "file_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "file_id",
+              "displayName": "file_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "file_url",
+              "displayName": "file_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "requested_at",
+              "displayName": "requested_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "decided_at",
+              "displayName": "decided_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Reviewer_Comments",
+              "displayName": "Reviewer_Comments",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Review_decision",
+              "displayName": "Review_decision",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        32,
+        272
+      ],
+      "id": "18fdbdb2-f768-4d13-9472-d838e025d223",
+      "name": "Update row(s)"
+    },
+    {
+      "parameters": {
+        "sendTo": "= {{ $('Validate Review Request').first().json.reviewer_email }}",
+        "subject": "={{ (() => {\n  const r = $('Validate Review Request').first().json;\n  const review = $('MIRA_Document_Reviews').first().json;\n\n  return `MIRA | Report Approved | ${r.project_name} | ${review.review_id}`;\n})() }}",
+        "message": "={{ (() => {\n  const r = $('Validate Review Request').first().json;\n  const review = $('MIRA_Document_Reviews').first().json;\n  const response =\n    $('Send message and wait for response').first().json.data ?? {};\n\n  const esc = value => String(value ?? '')\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\"/g, '&quot;')\n    .replace(/'/g, '&#39;');\n\n  const reviewId = review.review_id ?? r.review_id ?? 'N/A';\n\n  const comments = String(\n    response.Reviewer_comments ?? ''\n  ).trim();\n\n  const commentsHtml = comments\n    ? `<h3>Reviewer Comments</h3>\n       <div style=\"background:#f5f6f8;padding:14px;\n                   border-radius:6px;\">\n         ${esc(comments).replace(/\\r?\\n/g, '<br>')}\n       </div>`\n    : '';\n\n  // Use the approved PDF export if it provides a valid URL.\n  const exported = $('Export Approved PDF').first().json;\n\n  const fileUrl = String(\n    exported.webViewLink ??\n    exported.file_url ??\n    r.file_url ??\n    ''\n  ).trim();\n\n  \nconst reportLink = /^https:\\/\\/[^\\s]+$/i.test(fileUrl)\n  ? `<p><a href=\"${esc(fileUrl)}\">\n       View Approved Report\n     </a></p>`\n  : `<p>\n       The approved project report is attached\n       to this email in PDF format for your reference.\n     </p>`;\n\n  return `\n  <div style=\"font-family:Arial,sans-serif;\n              max-width:680px;line-height:1.6;\n              color:#253047;\">\n\n    <h2 style=\"color:#253d77;\">\n      MIRA – Project Intelligence\n    </h2>\n\n    <h3 style=\"color:#16803c;\">\n      Report Approved\n    </h3>\n\n    <p>Hello,</p>\n\n    <p>\n      The Mira project report has completed\n      human review and has been\n      <strong>APPROVED</strong>.\n    </p>\n\n    <table style=\"width:100%;border-collapse:collapse;\">\n      <tr>\n        <td><strong>Project</strong></td>\n        <td>${esc(r.project_name)}</td>\n      </tr>\n\n      <tr>\n        <td><strong>Version</strong></td>\n        <td>${esc(r.document_version ?? '1.0')}</td>\n      </tr>\n\n      <tr>\n        <td><strong>Review ID</strong></td>\n        <td>${esc(reviewId)}</td>\n      </tr>\n\n      <tr>\n        <td><strong>Status</strong></td>\n        <td><strong>Approved</strong></td>\n      </tr>\n    </table>\n\n    <hr style=\"border:0;border-top:1px solid #ddd;\">\n\n    ${commentsHtml}\n\n    <h3>Approved Document</h3>\n\n    <p>\n      The approved report has been processed\n      through Mira's human-in-the-loop\n      review workflow.\n    </p>\n\n    ${reportLink}\n\n    <h3>Governance Note</h3>\n\n    <p style=\"font-size:12px;color:#666;\">\n      Approval applies only to this report\n      version and Review ID.\n      Approval does not automatically\n      authorize external distribution.\n    </p>\n\n    <hr style=\"border:0;border-top:1px solid #ddd;\">\n\n    <p>\n      Thank you,<br>\n      <strong>\n        Mira Project Intelligence Assistant\n      </strong>\n    </p>\n\n  </div>`;\n})() }}",
+        "options": {
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {}
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1216,
+        272
+      ],
+      "id": "38632f8a-0450-4842-82c2-03c418789069",
+      "name": "Send a message"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "cfa70108-f409-48ce-88ac-61db74f5b281",
+              "leftValue": "={{ ($json.data?.Review_decision ?? $json.Review_decision) === 'Approve' }}",
+              "rightValue": "approved",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        928,
+        0
+      ],
+      "id": "4f3ce9d6-e139-42e9-9dc7-4a98607d187e",
+      "name": "Reviewer  Approved?"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "Ebae1QOsmHzjnNYD",
+          "mode": "list",
+          "cachedResultName": "MIRA_Document_Reviews",
+          "cachedResultUrl": "/projects/FGEpkWtn93BkXeAj/datatables/Ebae1QOsmHzjnNYD"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "review_id": "={{ $json.review_id }}",
+            "run_id": "={{ $json.run_id }}",
+            "snapshot_id": "={{ $json.snapshot_id }}",
+            "reviewer_email": "={{ $json.reviewer_email }}",
+            "requested_at": "={{ $json.requested_at }}",
+            "status": "pending_review",
+            "project_name": "={{ $json.project_name }}",
+            "document_version": "={{ $json.document_version }}",
+            "file_type": "={{ $json.file_type || '' }}",
+            "file_id": "={{ $json.file_id || '' }}",
+            "file_url": "={{ $json.file_url || '' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "review_id",
+              "displayName": "review_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "snapshot_id",
+              "displayName": "snapshot_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "project_name",
+              "displayName": "project_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "document_version",
+              "displayName": "document_version",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "reviewer_email",
+              "displayName": "reviewer_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "file_type",
+              "displayName": "file_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "file_id",
+              "displayName": "file_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "file_url",
+              "displayName": "file_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "requested_at",
+              "displayName": "requested_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "decided_at",
+              "displayName": "decided_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "optimizeBulk": false
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        0
+      ],
+      "id": "1e044da6-2ce9-4262-8263-3c02115374d4",
+      "name": "MIRA_Document_Reviews"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "3dd028c5-7b70-472b-a5ec-9261a46951eb",
+              "leftValue": "={{ $json.data.approved }}",
+              "rightValue": "{{ $json.data.approved }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        2272,
+        96
+      ],
+      "id": "32474a67-11f5-4264-b290-4d357cd72ac3",
+      "name": "Reviewer Declined"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Validate Review Request').first().json.reviewer_email }}",
+        "subject": "={{ 'MIRA Changes Requested - ' + $('Validate Review Request').first().json.project_name }}",
+        "message": "={{ (() => {\n  const r = $('Validate Review Request').first().json;\n  const review = $('MIRA_Document_Reviews').first().json;\n  const response =\n    $('Send message and wait for response').first().json.data ?? {};\n\n  const esc = value => String(value ?? '')\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\"/g, '&quot;')\n    .replace(/'/g, '&#39;');\n\n  const comments = String(response.Reviewer_comments ?? '').trim();\n  const reviewId = review.review_id ?? r.review_id ?? 'N/A';\n  const fileType = String(r.file_type ?? '').trim();\n  const fileUrl = String(r.file_url ?? '').trim();\n\n  const commentsHtml = comments\n    ? esc(comments).replace(/\\r?\\n/g, '<br>')\n    : 'No reviewer comments were provided.';\n\n  const reportLink = /^https:\\/\\/[^\\s]+$/i.test(fileUrl)\n    ? `<p><a href=\"${esc(fileUrl)}\">View report</a></p>`\n    : '<p>The report link is not available. Please refer to the stored draft.</p>';\n\n  return `\n  <div style=\"font-family:Arial,sans-serif;\n              max-width:680px;line-height:1.6;color:#253047;\">\n\n    <h2>MIRA – Project Intelligence</h2>\n    <h3>Changes Requested – Report Review</h3>\n\n    <p>Hello,</p>\n\n    <p>The Mira project report has been reviewed,\n    and changes have been requested.</p>\n\n    <table style=\"width:100%;border-collapse:collapse;\">\n      <tr>\n        <td><strong>Project</strong></td>\n        <td>${esc(r.project_name)}</td>\n      </tr>\n      <tr>\n        <td><strong>Version</strong></td>\n        <td>${esc(r.document_version ?? '1.0')}</td>\n      </tr>\n      <tr>\n        <td><strong>Review ID</strong></td>\n        <td>${esc(reviewId)}</td>\n      </tr>\n      ${fileType ? `\n      <tr>\n        <td><strong>Format</strong></td>\n        <td>${esc(fileType.toUpperCase())}</td>\n      </tr>` : ''}\n      <tr>\n        <td><strong>Status</strong></td>\n        <td><strong>Changes Requested</strong></td>\n      </tr>\n    </table>\n\n    <hr style=\"border:0;border-top:1px solid #ddd;\">\n\n    <h3>Reviewer Comments</h3>\n\n    <div style=\"background:#f5f6f8;padding:15px;\n                border-radius:6px;\">\n      ${commentsHtml}\n    </div>\n\n    <h3>Next Steps</h3>\n\n    <p>The current report has not been approved.</p>\n\n    <p>Please review the feedback, update the report\n    and submit a revised draft for another review.</p>\n\n    ${reportLink}\n\n    <p>Any revised report must receive a new\n    approval decision.</p>\n\n    <hr style=\"border:0;border-top:1px solid #ddd;\">\n\n    <p>Thank you,<br>\n    <strong>Mira Project Intelligence Assistant</strong></p>\n\n  </div>`;\n})() }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2224,
+        272
+      ],
+      "id": "8d8ff663-ecfa-4cb2-8ee0-0ad3ecebedf7",
+      "name": "Send a message1"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "Ebae1QOsmHzjnNYD",
+          "mode": "list",
+          "cachedResultName": "MIRA_Document_Reviews",
+          "cachedResultUrl": "/projects/FGEpkWtn93BkXeAj/datatables/Ebae1QOsmHzjnNYD"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "review_id",
+              "keyValue": "={{ $('Validate Review Request').first().json.review_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "decided_at": "={{ $('Send message and wait for response').first().json.data.respondedAt || $now.toISO() }}",
+            "status": "changes_requested",
+            "Reviewer_Comments": "= {{ $('Send message and wait for response').first().json.data.Reviewer_comments ?? '' }}",
+            "Review_decision": "={{ $('Send message and wait for response').first().json.data.Review_decision }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "review_id",
+              "displayName": "review_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "snapshot_id",
+              "displayName": "snapshot_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "project_name",
+              "displayName": "project_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "document_version",
+              "displayName": "document_version",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "reviewer_email",
+              "displayName": "reviewer_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "file_type",
+              "displayName": "file_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "file_id",
+              "displayName": "file_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "file_url",
+              "displayName": "file_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "requested_at",
+              "displayName": "requested_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "decided_at",
+              "displayName": "decided_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Reviewer_Comments",
+              "displayName": "Reviewer_Comments",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Review_decision",
+              "displayName": "Review_decision",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2000,
+        272
+      ],
+      "id": "2caeb1f0-72ec-4bc4-ac2f-5accb044da2e",
+      "name": "MIRA_Document_Reviews1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const r = $('Validate Review Request').first().json;\n\nif (r.review_type !== 'report') {\n  throw new Error(\n    'PDF content preparation supports report reviews only'\n  );\n}\n\nif (!r.report_content?.trim()) {\n  throw new Error('Approved report content is missing');\n}\n\n// Retrieve the review record updated after approval.\nconst review = $('Update row(s)').first().json;\n\nif (review.status !== 'approved') {\n  throw new Error(\n    'PDF generation blocked: review is not approved'\n  );\n}\n\n// Preserve the exact AI-generated report.\nconst originalReport = String(r.report_content);\n\n// Remove only the machine-readable JSON appendix.\n// Do not modify the original stored report.\nfunction cleanReport(value) {\n  return String(value ?? '')\n    .replace(/\\r\\n/g, '\\n')\n\n    // Remove JSON appendix inside details.\n    .replace(\n      /<details>[\\s\\S]*?<\\/details>/gi,\n      ''\n    )\n\n    // Remove standalone structured JSON sections.\n    .replace(\n      /Complete structured report data\\s*```json[\\s\\S]*?```/gi,\n      ''\n    )\n\n    // Remove remaining JSON code blocks.\n    .replace(/```json[\\s\\S]*?```/gi, '')\n\n    // Remove technical heading, not the report.\n    .replace(\n      /^#\\s*MIRA PROJECT INTELLIGENCE\\s*[—-]\\s*DRAFT\\s*$/gmi,\n      ''\n    )\n\n    // Remove repeated technical execution metadata.\n    .replace(\n      /^\\*\\*(Execution|Overall validation|Snapshot|Run ID|Reports returned):\\*\\*.*$/gmi,\n      ''\n    )\n\n    // Convert Markdown headings to plain document headings.\n    .replace(\n      /^#{1,6}\\s+(.+)$/gm,\n      (_, title) => '\\n' + title.toUpperCase() + '\\n'\n    )\n\n    // Remove Markdown bold markers.\n    .replace(/\\*\\*(.*?)\\*\\*/g, '$1')\n\n    // Normalize list indentation.\n    .replace(/^(\\s*)-\\s+/gm, '$1• ')\n\n    // Normalize excessive whitespace.\n    .replace(/\\n{3,}/g, '\\n\\n')\n\n    .trim();\n}\n\n\nlet formattedBody = cleanReport(originalReport);\n\n// Remove stakeholder email draft from Status Reports only.\nif (r.capability === 'status') {\n  formattedBody = formattedBody.replace(\n    /(?:^|\\n)\\s*(?:#{1,6}\\s*)?STAKEHOLDER EMAIL\\s*[—–-]\\s*DRAFT\\b[\\s\\S]*?(?=\\n\\s*(?:#{1,6}\\s*)?(?:SOURCE REFERENCES|DATA GAPS|REPORT GOVERNANCE)\\b|$)/i,\n    '\\n\\n'\n  );\n}\n\n// Normalize extra blank lines.\nformattedBody = formattedBody\n  .replace(/\\n{3,}/g, '\\n\\n')\n  .trim();\n\n\n// Preserve the current review record metadata.\nconst reviewId = review.review_id ?? r.review_id;\nconst reviewerComments =\n  String(review.Reviewer_Comments ?? '').trim();\n\nconst decidedAt = review.decided_at ?? '';\n\nconst capability = r.capability || 'multi';\n\nreturn [{\n  json: {\n    review_id: reviewId,\n    run_id: r.run_id,\n    project_name: r.project_name,\n    capability,\n    reviewer_email: r.reviewer_email,\n    document_version: r.document_version || '1.0',\n\n    document_name:\n      `MIRA_${capability}_${r.run_id}_APPROVED`,\n\n    formatted_body: formattedBody,\n\n    // Original report remains available for audit.\n    original_report_content: originalReport,\n\n    approval_status: 'APPROVED',\n    reviewer_comments: reviewerComments,\n    decided_at: decidedAt\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        256,
+        272
+      ],
+      "id": "1b6dd40f-fa6a-40f3-a570-d765239c0055",
+      "name": "Prepare PDF Content"
+    },
+    {
+      "parameters": {
+        "operation": "copy",
+        "fileId": {
+          "__rl": true,
+          "value": "https://docs.google.com/document/d/YOUR_GOOGLE_DOC_ID/edit?tab=t.0",
+          "mode": "url"
+        },
+        "name": "={{ $json.document_name }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        480,
+        272
+      ],
+      "id": "3f6220a2-77f4-49c7-81d7-9fe336da0bb0",
+      "name": "Copy file"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentURL": "={{ $('Copy file').first().json.id }}",
+        "actionsUi": {
+          "actionFields": [
+            {
+              "action": "replaceAll",
+              "text": "{{PROJECT_NAME}}",
+              "replaceText": "={{ $('Prepare PDF Content').first().json.project_name }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{CAPABILITY}}",
+              "replaceText": "={{ $('Prepare PDF Content').first().json.capability }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{DOCUMENT_VERSION}}",
+              "replaceText": "={{ $('Validate Review Request').first().json.document_version }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{RUN_ID}}",
+              "replaceText": "={{ $('Prepare PDF Content').first().json.run_id }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{REVIEW_ID}}",
+              "replaceText": "={{ $('Prepare PDF Content').first().json.review_id }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{DOCUMENT_STATUS}}",
+              "replaceText": "={{ $('Prepare PDF Content').first().json.approval_status }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{FORMATTED_BODY}}",
+              "replaceText": "={{ $('Prepare PDF Content').first().json.formatted_body }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{APPROVAL_STATUS}}",
+              "replaceText": "={{ $('Prepare PDF Content').first().json.approval_status }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{DECIDED_AT}}",
+              "replaceText": "={{ $('Prepare PDF Content').first().json.decided_at || 'Not recorded' }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{REVIEWER_COMMENTS}}",
+              "replaceText": "={{ $('Prepare PDF Content').first().json.reviewer_comments || 'No comments provided.' }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        736,
+        272
+      ],
+      "id": "e0f05d7c-36fd-460c-b036-f8951b0fd7aa",
+      "name": "Update a document"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('Copy file').first().json.id }}",
+          "mode": "id"
+        },
+        "options": {
+          "binaryPropertyName": "data",
+          "googleFileConversion": {
+            "conversion": {
+              "docsToFormat": "application/pdf"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        960,
+        272
+      ],
+      "id": "7d9114da-872b-4a27-8388-eccc7ac9fe77",
+      "name": "Export Approved PDF"
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Validate Review Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Review Request": {
+      "main": [
+        [
+          {
+            "node": "MIRA_Document_Reviews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send message and wait for response": {
+      "main": [
+        [
+          {
+            "node": "Reviewer  Approved?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row(s)": {
+      "main": [
+        [
+          {
+            "node": "Prepare PDF Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reviewer  Approved?": {
+      "main": [
+        [
+          {
+            "node": "Update row(s)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reviewer Declined",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MIRA_Document_Reviews": {
+      "main": [
+        [
+          {
+            "node": "Send message and wait for response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reviewer Declined": {
+      "main": [
+        [
+          {
+            "node": "MIRA_Document_Reviews1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MIRA_Document_Reviews1": {
+      "main": [
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare PDF Content": {
+      "main": [
+        [
+          {
+            "node": "Copy file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Copy file": {
+      "main": [
+        [
+          {
+            "node": "Update a document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a document": {
+      "main": [
+        [
+          {
+            "node": "Export Approved PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Export Approved PDF": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "nodeGroups": [],
+  "tags": []
+}
