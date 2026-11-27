@@ -1,26 +1,26 @@
-Chat Interface URL- https://agentic09.app.n8n.cloud/webhook/fabb30ae-272a-437c-b37a-c485f6e01e71/chat,  
+Step 7 capstone submission navigation (updated November 27, 2026)
+Two-page architecture writeup
+Capstone presentation
+Q1–Q4 assignment evidence guide
+Evaluation workbook
+Cost analysis and assumptions
+Workflow exports and screenshot evidence
+Evaluation history clarification: The repository documents an earlier batch, Run 5814 (November 18, 2026), with 12/12 recorded passing overall verdicts. A later complete batch, Run 6756 (November 26), recorded 11/12 overall passes; T1 received an automated unsupported-claim/hallucination flag that requires evidence-level review. A subsequent isolated T8 Milestone Agent run (6826) passed with improved grounding. Do not combine those runs into a single claimed full-batch outcome.
+
+Published status: Capstone MVP / controlled demo; not production-certified. Public demo links in this README should be tested independently before submission.
+
+Chat Interface URL- https://agentic09.app.n8n.cloud/webhook/fabb30ae-272a-437c-b37a-c485f6e01e71/chat,
 
 Mira Project data upload URL- https://agentic09.app.n8n.cloud/form/mira-project-upload
 
-MIRA — AI-Powered Project Intelligence Assistant
-Applied Agentic AI for PMs/TPMs | Capstone Project | Nexora / ABCDE Ltd. AI Adoption (training scenario)
+MIRA — AI-Powered Project Intelligence Assistant Applied Agentic AI for PMs/TPMs | Capstone Project | Nexora / ABCDE Ltd. AI Adoption (training scenario)
 
-MIRA is a multi-agent project intelligence prototype built in n8n to help project managers and technical program managers turn approved project documents and task-board records into traceable plans, risk assessments, status reports, milestone analyses, and stakeholder updates. The design emphasizes delivery governance, evidence-based reporting, predictable escalation, observability, and human review—not simply AI-generated text.
-Project status: Capstone prototype, evaluated against 12 predefined baseline scenarios. Not production-deployed. Source-data freshness, third-party integrations, and model costs are constrained as described below.
+MIRA is a multi-agent project intelligence prototype built in n8n to help project managers and technical program managers turn approved project documents and task-board records into traceable plans, risk assessments, status reports, milestone analyses, and stakeholder updates. The design emphasizes delivery governance, evidence-based reporting, predictable escalation, observability, and human review—not simply AI-generated text. Project status: Capstone prototype, evaluated against 12 predefined baseline scenarios. Not production-deployed. Source-data freshness, third-party integrations, and model costs are constrained as described below.
 
-1. The TPM problem and intended value
-In the supplied Nexora/ABCDE Ltd. scenario, PMs/TPMs spend significant time drafting project plans (3–4 hours), compiling weekly status updates (1–2 hours), and managing inconsistently recorded risks and milestones. MIRA addresses these processes through a consistent workflow while preventing unsupported project details from being presented as facts.
-TPM responsibility	MIRA capability	Output / control
-Scope and delivery planning	Planner	Project phases, activities, deliverables, milestones; evidence gaps
-Risk and issue governance	Risk Assessor	Categorized risks, mitigation strategies, source references; unknown scores left unknown
-Execution visibility	Status Reporter	Sprint/project task counts, statuses, blockers, draft updates; reconciliation
-Schedule governance	Milestone Tracker	Milestones, dependencies, blocker alerts; no invented dates
-Executive communication	Stakeholder Update	Audience-appropriate draft updates requiring human approval before distribution
+The TPM problem and intended value In the supplied Nexora/ABCDE Ltd. scenario, PMs/TPMs spend significant time drafting project plans (3–4 hours), compiling weekly status updates (1–2 hours), and managing inconsistently recorded risks and milestones. MIRA addresses these processes through a consistent workflow while preventing unsupported project details from being presented as facts. TPM responsibility MIRA capability Output / control Scope and delivery planning Planner Project phases, activities, deliverables, milestones; evidence gaps Risk and issue governance Risk Assessor Categorized risks, mitigation strategies, source references; unknown scores left unknown Execution visibility Status Reporter Sprint/project task counts, statuses, blockers, draft updates; reconciliation Schedule governance Milestone Tracker Milestones, dependencies, blocker alerts; no invented dates Executive communication Stakeholder Update Audience-appropriate draft updates requiring human approval before distribution
+Primary users: PMs, TPMs, program leaders, project sponsors and stakeholders reviewing AI adoption delivery. 2. Architecture and orchestration decision Pattern: intent-based Router/Dispatcher with orchestration of selected specialist workflows. Project questions have different intents (plan, risk, status, milestone, stakeholder update); running all specialists for every request would add cost and irrelevant output. A conversational routing layer selects the smallest sufficient capability set and checks that a valid project snapshot can be used. The Orchestrator retrieves the approved data and invokes applicable agents. Separate evaluation and tracing paths assess behavior. Human review is a governance step for deliverables that are distributed.
 
 
-Primary users: PMs, TPMs, program leaders, project sponsors and stakeholders reviewing AI adoption delivery.
-2. Architecture and orchestration decision
-Pattern: intent-based Router/Dispatcher with orchestration of selected specialist workflows. Project questions have different intents (plan, risk, status, milestone, stakeholder update); running all specialists for every request would add cost and irrelevant output. A conversational routing layer selects the smallest sufficient capability set and checks that a valid project snapshot can be used. The Orchestrator retrieves the approved data and invokes applicable agents. Separate evaluation and tracing paths assess behavior. Human review is a governance step for deliverables that are distributed.
 ```mermaid
 flowchart TD
   A[User / Chat Input] --> B[Conversational Router]
